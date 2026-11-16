@@ -231,6 +231,15 @@ async function run() {
       });
       ok(size.w >= 160, `場のカードが大きい (幅 ${size.w}pt / 前は 107pt)`);
       ok(size.font >= 17, `いちばん新しい説明の字が大きい (${size.font}px / 前は 13px)`);
+      // カードは白い台紙なしで、そのカードの色に塗る (色でぱっと見分けるため)。名前は白
+      const look = await pg.evaluate(() => {
+        const c = document.querySelector('#played .card');
+        return { bg: getComputedStyle(c).backgroundImage, name: getComputedStyle(c.querySelector('.cn')).color,
+          colors: new Set(Object.values(CARDS).map((k) => k.c.toLowerCase())).size, kinds: Object.keys(CARDS).length };
+      });
+      ok(!/246, 236, 214/.test(look.bg) && /linear-gradient/.test(look.bg) && look.name === 'rgb(255, 255, 255)',
+        `カードが色で塗られ、名前が白い (${look.name})`);
+      ok(look.colors === look.kinds, `カードの色が 12 種類ぜんぶ違う (${look.colors}/${look.kinds})`);
       // 手札をえらぶと画面が描き直される。場のカードは作り直さない (作り直すと「ぽん」が毎回出る)
       await pg.evaluate(() => { window.__pc = document.querySelector('#played .card'); });
       await pg.locator('#hand .card').first().tap();

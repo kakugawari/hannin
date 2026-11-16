@@ -104,14 +104,21 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 
 /* ---------- card ---------- */
 .card{--w:var(--cw);width:var(--w);height:calc(var(--w)*1.45);border-radius:calc(var(--w)*.1);position:relative;flex:none;
-  background:linear-gradient(160deg,var(--paper),var(--paper2));color:var(--ink);
-  box-shadow:0 3px 0 #0003,0 6px 14px #0006;border:2px solid var(--c);display:flex;flex-direction:column;align-items:center;
+  /* カード全体を そのカードの色で塗る (白い台紙なし)。絵は背景が透明なので、うしろに薄い光だけ置く */
+  background:
+    radial-gradient(60% 42% at 50% 52%,#ffffff40 0%,#ffffff14 55%,transparent 75%),
+    linear-gradient(160deg,color-mix(in srgb,var(--c) 78%,#fff) 0%,var(--c) 45%,color-mix(in srgb,var(--c) 78%,#000) 100%);
+  color:#fff;
+  box-shadow:0 3px 0 #0003,0 6px 14px #0006;border:2px solid color-mix(in srgb,var(--c) 65%,#000);display:flex;flex-direction:column;align-items:center;
   padding:calc(var(--w)*.07) calc(var(--w)*.05);transition:transform .18s}
-.card::before{content:"";position:absolute;inset:3px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);border-radius:calc(var(--w)*.075);pointer-events:none}
-.card .cn{font-weight:800;font-size:calc(var(--w)*.165);letter-spacing:-.02em;white-space:nowrap;color:var(--c);line-height:1.15}
+.card::before{content:"";position:absolute;inset:3px;border:1.5px solid #ffffff70;border-radius:calc(var(--w)*.075);pointer-events:none}
+.card .cn{font-weight:900;font-size:calc(var(--w)*.165);letter-spacing:-.02em;white-space:nowrap;color:#fff;line-height:1.15;
+  /* 白い字を、そのカードの濃い色で縁取る (縁取りは字の下に敷く: 落とし穴の表「題字が白く抜ける」) */
+  -webkit-text-stroke:calc(var(--w)*.03) color-mix(in srgb,var(--c) 55%,#000);paint-order:stroke fill}
 .card .cn.long{font-size:calc(var(--w)*.135)}
 .card .art{width:96%;flex:1;min-height:0;object-fit:contain;pointer-events:none;-webkit-user-drag:none;margin:2px 0}
-.card .cr{font-size:calc(var(--w)*.09);color:#6d6577;white-space:nowrap;max-width:100%;overflow:hidden;letter-spacing:-.04em}
+.card .cr{font-size:calc(var(--w)*.09);color:#fff;text-shadow:0 1px 0 color-mix(in srgb,var(--c) 50%,#000),0 0 3px color-mix(in srgb,var(--c) 60%,#000);font-weight:700;white-space:nowrap;max-width:100%;overflow:hidden;letter-spacing:-.04em}
+.card .cr.long{font-size:calc(var(--w)*.078);letter-spacing:-.06em}
 .card.sel{transform:translateY(-12px);box-shadow:0 0 0 3px var(--gold2),0 10px 20px #000a}
 .card.ng{filter:saturate(.35) brightness(.82)}
 .card .new{position:absolute;top:-8px;left:50%;transform:translateX(-50%);background:#e2453a;color:#fff;font-size:10px;font-weight:800;padding:1px 6px;border-radius:7px}
