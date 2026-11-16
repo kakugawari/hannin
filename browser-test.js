@@ -191,7 +191,8 @@ async function run() {
       await pg.locator('#go:not([disabled])').tap({ timeout: 3000 });
       await settle(false);
       await pg.waitForTimeout(500);
-      const mine = (await pg.evaluate(() => window.__seenLog)).filter((l) => /^あなた は/.test(l));
+      // 出したカードの行は画面では顔の列で見せるので、記録そのもの (G.log) を見る
+      const mine = (await pg.evaluate(() => G.log.map((l) => l.replace(/[\u0001\u0003]|\u0002/g, '').replace(/^0(?=「)/, 'あなた')))).filter((l) => /^あなた「/.test(l));
       ok(mine.some((l) => l.includes(names[pick])),
         `配り方${seed}: 自分のカードを出せる (${names[pick]} / 記録: ${mine.join(' / ').slice(0, 50)})`);
       await ctx.close();
@@ -242,11 +243,14 @@ async function run() {
       }
       const size = await pg.evaluate(() => {
         const c = document.querySelector('#played .card').getBoundingClientRect();
-        const last = document.querySelector('#log div:last-child');
-        return { w: Math.round(c.width), font: parseFloat(getComputedStyle(last).fontSize) };
+        // 出したカードで何も起きないときは説明の行が無い。そのときは仮の行を入れて字の大きさを測る
+        const box = document.querySelector('#log'), tmp = box.querySelector('div') ? null : box.appendChild(document.createElement('div'));
+        const last = box.querySelector('div:last-child'), font = parseFloat(getComputedStyle(last).fontSize);
+        if (tmp) tmp.remove();
+        return { w: Math.round(c.width), font };
       });
-      ok(size.w >= 160, `場のカードが大きい (幅 ${size.w}pt / 前は 107pt)`);
-      ok(size.font >= 17, `いちばん新しい説明の字が大きい (${size.font}px / 前は 13px)`);
+      ok(size.w >= 130 && size.w <= 150, `場のカードが大きすぎず小さすぎない (幅 ${size.w}pt / 取り込み時 107pt・170pt では説明の字が負けた)`);
+      ok(size.font >= 19, `いちばん新しい説明の字が大きい (${size.font}px / 取り込み時 13px)`);
       // カードは白い台紙なしで、そのカードの色に塗る (色でぱっと見分けるため)。名前は白
       const look = await pg.evaluate(() => {
         const c = document.querySelector('#played .card');
@@ -272,6 +276,48 @@ async function run() {
       ok(tiles.every((t) => t.pop >= 8), `顔がタイルの上のふちから出ている (${tiles.map((t) => t.pop).join(', ')}pt)`);
       ok(tiles.every((t) => !t.hit), 'あなた・なかま の札が、顔にも札どうしにも重ならない');
       await pg.evaluate(() => { G.players[0].acc = false; G.players[2].acc = false; UI.render(); });
+      // 下の並び: 案内は手札のすぐ上、決定の帯はいちばん下。押せないボタンは出さない
+      const low = await pg.evaluate(() => {
+        const r = (q) => document.querySelector(q).getBoundingClientRect();
+        return { prompt: r('#prompt'), hand: r('#hand'), info: r('#info'), go: getComputedStyle(document.querySelector('#go')).display };
+      });
+      ok(low.prompt.bottom <= low.hand.top + 2 && low.hand.top - low.prompt.bottom < 12 && low.info.top >= low.hand.bottom - 1,
+        `案内 → 手札 → 決定の帯 の順に並ぶ (案内の下 ${Math.round(low.prompt.bottom)} / 手札 ${Math.round(low.hand.top)}〜${Math.round(low.hand.bottom)} / 帯 ${Math.round(low.info.top)})`);
+      ok(low.go === 'none', `カードをえらぶまで、押せないボタンは出さない (${low.go})`);
+      // 12 種類のカードの説明が、出せる・出せないのどちらでも帯に収まる (はみ出すと説明が切れて読めない)
+      const fit = await pg.evaluate(() => {
+        const box = document.querySelector('#infoTxt'), go = document.querySelector('#go');
+        go.disabled = false; go.hidden = false; go.textContent = 'わたす';
+        const bad = [];
+        for (const t of Object.keys(CARDS)) {
+          for (const ng of [false, true]) {
+            const why = ng ? (whyNot({ hand: [] }, { type: t }) || '手札が3まい以下になったら 使える') : '';
+            box.innerHTML = `<b>${CARDS[t].n}</b>　${ng ? `<span class="ng">※ ${why}</span>` : CARDS[t].t}`;
+            if (box.scrollHeight > box.clientHeight + 1) bad.push(t + (ng ? '(出せない)' : ''));
+          }
+        }
+        UI.render();
+        return bad;
+      });
+      ok(fit.length === 0, `12 種類のカードの説明が帯に収まる (はみ出し: ${fit.join(', ') || 'なし'})`);
+      // 場のカードの下は、出した人 (と相手) の顔 + 名札。説明の行は、そのカードで起きたことだけ・顔つき・2 行まで (字を減らす)
+      const who = await pg.evaluate(() => {
+        // 出したカードの行のあとに、起きたことが 3 行つづいた形を作って描く (あとで元に戻す)
+        const keep = G.log.slice();
+        G.log.push('\u0003\u00013\u0002「たくらみ」', 'いち', '\u00013\u0002 は 犯人のなかまに なった!', 'さん');
+        UI.render();
+        const by = document.querySelector('#played .by');
+        const lines = [...document.querySelectorAll('#log div')];
+        const r = { faces: by.querySelectorAll('img.av').length, plate: getComputedStyle(by.querySelector('b')).backgroundColor,
+          by: by.textContent, lines: lines.length, text: lines.map((d) => d.textContent).join(' / '),
+          noFace: lines.filter((d) => /くろねこ|きつね|ふくろう|あなた/.test(d.textContent) && !d.querySelector('img.av')).length,
+          hasName: lines.some((d) => d.querySelector('img.av')) };
+        G.log = keep; UI.render();
+        return r;
+      });
+      ok(who.faces >= 1 && who.plate !== 'rgba(0, 0, 0, 0)', `場のカードの下に、出した人の顔とキャラの色の名札がある (${who.by} / 顔 ${who.faces})`);
+      ok(who.lines === 2 && !/「.+」/.test(who.text), `説明の行は 2 行まで、出したカードの行はくり返さない (${who.text})`);
+      ok(who.noFace === 0 && who.hasName, '説明の行の名前には顔が付いている');
       // 手札をえらぶと画面が描き直される。場のカードは作り直さない (作り直すと「ぽん」が毎回出る)
       await pg.evaluate(() => { window.__pc = document.querySelector('#played .card'); });
       await pg.locator('#hand .card').first().tap();
@@ -304,21 +350,21 @@ async function run() {
           new MutationObserver(() => {
             const by = (document.querySelector('#played .by') || {}).textContent || '';
             const l = window.__plays[window.__plays.length - 1];
-            if (/が出した/.test(by) && (!l || l.by !== by)) window.__plays.push({ by, t: performance.now() - t0 });
+            if (/が出した|▶/.test(by) && (!l || l.by !== by)) window.__plays.push({ by, t: performance.now() - t0 });
           }).observe(document.body, { childList: true, subtree: true, characterData: true });
         });
         await pg.locator('#hsStart').tap();
         await pg.locator('#start').tap();
         await pg.locator('#modal button:visible').first().tap({ timeout: 4000 });   // 第一発見者の知らせ
-        await pg.waitForFunction(() => window.__plays.some((e) => /きつね/.test(e.by)), null, { timeout: 8000 });
+        await pg.waitForFunction(() => window.__plays.some((e) => /^きつね/.test(e.by)), null, { timeout: 8000 });
         if (tapAfter) {
           await pg.waitForTimeout(tapAfter);
           const box = await pg.locator('#table').boundingBox();
           await pg.touchscreen.tap(box.x + box.width / 2, box.y + box.height - 10);
         }
-        await pg.waitForFunction(() => window.__plays.some((e) => /ふくろう/.test(e.by)), null, { timeout: 10000 });
+        await pg.waitForFunction(() => window.__plays.some((e) => /^ふくろう/.test(e.by)), null, { timeout: 10000 });
         const r = await pg.evaluate(() => {
-          const k = window.__plays.find((e) => /きつね/.test(e.by)), f = window.__plays.find((e) => /ふくろう/.test(e.by));
+          const k = window.__plays.find((e) => /^きつね/.test(e.by)), f = window.__plays.find((e) => /^ふくろう/.test(e.by));
           return Math.round(f.t - k.t);
         });
         await ctx.close();

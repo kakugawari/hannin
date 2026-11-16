@@ -126,6 +126,7 @@ function cpuGive(i){
 }
 
 /* ---- game flow ---- */
+const W=P=>`\u0001${P.idx}\u0002`;
 function log(s){G.log.push(s);if(G.log.length>30)G.log.shift();UI.render();}
 async function chooseGive(i,title){
   const P=G.players[i];
@@ -138,9 +139,9 @@ async function runGame(){
   const P=G.players[s],hi=P.hand.findIndex(c=>c.type==='hakken');
   G.turn=s;UI.render();
   await UI.wait(500);
-  const c=P.hand.splice(hi,1)[0];G.last=c;G.lastBy=s;
+  const c=P.hand.splice(hi,1)[0];G.last=c;G.lastBy=s;G.lastTo=null;
   UI.sfx('play');
-  log(`${P.name} が 第一発見者! じけんが おきた…`);
+  log(`${W(P)} が 第一発見者! じけんが おきた…`);
   await UI.announce(s,`<p><b>${P.name}</b> が じけんを はっけん!</p><p>犯人は この中に いる…。<br>${G.players[(s+1)%G.n].name} から じゅんばんに カードを出そう。</p>`,c);
   let t=(s+1)%G.n,guard=0;
   while(!G.over&&guard++<500){
@@ -162,8 +163,8 @@ async function takeTurn(i){
 function setMood(i,m,ms){const P=G.players[i];P.mood=m;UI.render();if(ms)setTimeout(()=>{if(G&&!G.over&&P.mood===m){P.mood='normal';UI.render();}},ms);}
 async function resolvePlay(i,ci,target){
   const P=G.players[i],c=P.hand.splice(ci,1)[0],T=target!=null?G.players[target]:null;
-  G.last=c;G.lastBy=i;UI.sfx('play');
-  log(`${P.name} は「${nm(c.type)}」を出した`+(T?` → ${T.name}`:''));
+  G.last=c;G.lastBy=i;G.lastTo=T?target:null;UI.sfx('play');
+  log(`\u0003${W(P)}「${nm(c.type)}」`+(T?` → ${W(T)}`:''));
   await UI.wait(450);
   switch(c.type){
     case 'hannin':
@@ -175,22 +176,22 @@ async function resolvePlay(i,ci,target){
       if(yes){UI.sfx('hit');setMood(target,'shock');await UI.announce(target,`<div class="speech">「……はい。わたしが 犯人です。」</div>`,null,'shock');return endGame('tantei',i,target);}
       UI.sfx('miss');
       await UI.announce(target,`<div class="speech">「いいえ、ちがいます。」</div>`,null,'happy');setMood(i,'sad',2500);
-      log(`${T.name}「ちがいます」`);
+      log(`${W(T)}「ちがいます」`);
       knowAll(p=>{if(p[target]<.999)p[target]*=.25;});
       break;}
     case 'alibi':case 'ippan':log('…とくに何もおきない');break;
-    case 'takurami':P.acc=true;log(`${P.name} は 犯人のなかまに なった!`);break;
+    case 'takurami':P.acc=true;log(`${W(P)} は 犯人のなかまに なった!`);break;
     case 'mokugeki':
       if(!T){log('見る相手が いない…');break;}
       if(P.cpu)knowSee(i,target);
       else await UI.privateMsg(i,`<h2>${T.name} の手札</h2>`,T.hand);
-      log(`${P.name} は ${T.name} の手札を こっそり見た`);
+      log(`${W(P)} は ${W(T)} の手札を こっそり見た`);
       break;
     case 'shonen':{
       const h=G.players.findIndex(q=>has(q,'hannin'));
       if(P.cpu){P.know.fill(0);P.know[h]=1;normK(i);}
       else await UI.privateMsg(i,`<h2>少年が 見たもの…</h2><div class="big-av">${avatarSVG(G.players[h].av,'shock')}</div><p>犯人カードを持っているのは<br><b style="font-size:20px">${h===i?'あなた じしん!':G.players[h].name}</b></p>`);
-      log(`${P.name} は 犯人を こっそり知った…`);
+      log(`${W(P)} は 犯人を こっそり知った…`);
       break;}
     case 'inu':{
       if(!T){log('いぬは ねむっている…');break;}
@@ -198,7 +199,7 @@ async function resolvePlay(i,ci,target){
       UI.sfx('dog');
       await UI.announce(i,`<p>いぬが <b>${T.name}</b> の手札から 1まい くわえてきた!</p>`,got);
       if(got.type==='hannin'){UI.sfx('hit');setMood(target,'shock');return endGame('inu',i,target);}
-      log(`いぬは「${nm(got.type)}」をくわえてきた。${T.name} にかえした`);
+      log(`いぬは「${nm(got.type)}」をくわえてきた。${W(T)} にかえした`);
       const h=T.hand.length;knowAll(p=>{if(p[target]<.999)p[target]*=(h-1)/h;});
       break;}
     case 'torihiki':{
@@ -210,7 +211,7 @@ async function resolvePlay(i,ci,target){
       P.hand.splice(a,1,cb);T.hand.splice(b,1,ca);cb.fresh=true;ca.fresh=true;
       knowTransfer([{from:i,to:target,card:ca},{from:target,to:i,card:cb}],sizes);
       UI.sfx('swap');
-      log(`${P.name} と ${T.name} が カードを こうかんした`);
+      log(`${W(P)} と ${W(T)} が カードを こうかんした`);
       await UI.moveNotice([{from:i,to:target,card:ca},{from:target,to:i,card:cb}]);
       break;}
     case 'uwasa':case 'sousa':{
@@ -263,6 +264,11 @@ const $=s=>document.querySelector(s);
 const AVS=['kid','cat','fox','owl'];
 // キャラの色 (顔の絵の地の色)。タイルの名札と顔の輪に使う
 const AVC={kid:'#3d8bf2',cat:'#8058b3',fox:'#3e965f',owl:'#a0624e'};
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// 小さな顔 + キャラの色の名前 (字を読まなくても、だれのことか分かるように)
+// 場のカードの下: 出した人 (と、相手) の顔 + 名札
+function byHTML(P){return `<span class="who1" style="--pc:${AVC[P.av]||'#6f6f78'}">${avatarSVG(P.av)}<b>${esc(P.name)}</b></span>`;}
+function whoHTML(P){return P?`<span class="chip" style="--pc:${AVC[P.av]||'#6f6f78'}">${avatarSVG(P.av)}<b>${esc(P.name)}</b></span>`:'';}
 const DEF_NAMES=['あなた','くろねこ','きつね','ふくろう'];
 let settings={n:4,seats:[{name:'あなた',cpu:false},{name:'くろねこ',cpu:true},{name:'きつね',cpu:true},{name:'ふくろう',cpu:true}],sound:true};
 try{const s=JSON.parse(localStorage.getItem('yakata-settings'));if(s&&s.seats&&s.seats.length===4)settings=s;}catch(e){}
@@ -390,11 +396,14 @@ const UI={
     // 場のカード: 新しく出たときだけ「ぽん」と出す (render は何度も呼ばれるので、毎回は動かさない)
     if(ui.shown!==G.last||ui.shownBy!==G.lastBy){
       ui.shown=G.last;ui.shownBy=G.lastBy;
-      $('#played').innerHTML=G.last?`${cardHTML(G.last,{cls:'played'})}<div class="by"><b>${G.players[G.lastBy].name}</b> が出した</div>`:'';
+      const by=G.players[G.lastBy],to=G.lastTo!=null?G.players[G.lastTo]:null;
+      $('#played').innerHTML=G.last?`${cardHTML(G.last,{cls:'played'})}<div class="by">${byHTML(by)}${to?`<span class="to">▶</span>${byHTML(to)}`:'<span>が出した</span>'}</div>`:'';
       const pc=$('#played .card');
       if(pc&&pc.animate)pc.animate([{transform:'scale(.6) rotate(-8deg)',opacity:0},{transform:'scale(1.08) rotate(2deg)',opacity:1,offset:.6},{transform:'scale(1) rotate(0)'}],{duration:420,easing:'cubic-bezier(.2,.9,.3,1.2)'});
     }
-    $('#log').innerHTML=G.log.slice(-3).map(s=>`<div>${s}</div>`).join('');
+    // 出したカードの行 (\u0003) は、場のカードと顔の列で見えているので出さない。そのカードで起きたことだけ、新しい 2 行
+    const lp=G.log.map(s=>s[0]==='\u0003').lastIndexOf(true);
+    $('#log').innerHTML=G.log.slice(lp+1).slice(-2).map(s=>`<div>${s.replace(/\u0001(\d+)\u0002/g,(m,i)=>whoHTML(G.players[i]))}</div>`).join('');
     // hand
     const V=G.viewer!=null?G.players[G.viewer]:null;
     if(!V){$('#hand').innerHTML='<div class="hid">手札は かくしています</div>';}
@@ -407,9 +416,10 @@ const UI={
     if(ui.mode==='play'||ui.mode==='give'){
       if(ui.sel>=0&&V){
         const c=V.hand[ui.sel],ok=ui.mode==='give'||ui.legal.includes(ui.sel);
-        $('#infoTxt').innerHTML=`<b>${CARDS[c.type].n}</b><br>${CARDS[c.type].t}${!ok?`<br><span class="ng">※ ${whyNot(V,c)}</span>`:''}`;
+        // 出せないときは、説明の代わりに理由を出す (帯に収めるため。いちばん知りたいのは理由)
+        $('#infoTxt').innerHTML=`<b>${CARDS[c.type].n}</b>　${ok?CARDS[c.type].t:`<span class="ng">※ ${whyNot(V,c)}</span>`}`;
         go.disabled=!ok;
-      }else{$('#infoTxt').innerHTML=ui.mode==='give'?'わたすカードを タップしてえらんでね':'出すカードを タップしてえらんでね';go.disabled=true;}
+      }else{$('#infoTxt').innerHTML='<span class="hint">↑ カードを タップ</span>';go.disabled=true;}   // 案内は上の行にあるので、ここでは くり返さない
       go.textContent=ui.btn;go.hidden=false;
     }else if(ui.mode==='target'){
       $('#infoTxt').innerHTML=`<b>${CARDS[V.hand[ui.sel].type].n}</b><br>上の人を タップしてね`;go.hidden=true;
