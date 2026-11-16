@@ -196,6 +196,59 @@ async function run() {
         `配り方${seed}: 自分のカードを出せる (${names[pick]} / 記録: ${mine.join(' / ').slice(0, 50)})`);
       await ctx.close();
     }
+    section('はやさ (CPU が出したカードを読む間)');
+    {
+      // 配り方13: くろねこが第一発見者 → きつね → ふくろう と CPU が続く。あなたの番はそのあと
+      const pace = async (preset, tapAfter) => {
+        const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+        const pg = await ctx.newPage();
+        pg.on('pageerror', (e) => errors.push('はやさ: ' + e.message));
+        await pg.addInitScript(({ sd, preset }) => {
+          let a = sd >>> 0;
+          Math.random = () => {
+            a = (a + 0x6d2b79f5) >>> 0; let t = a;
+            t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+            return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+          };
+          if (preset) localStorage.setItem('yakata-settings', JSON.stringify(preset));
+        }, { sd: 13, preset });
+        await pg.goto(URL, { waitUntil: 'load' });
+        const speed = await pg.evaluate(() => (JSON.parse(localStorage.getItem('yakata-settings') || '{}').speed) || null);
+        await pg.evaluate(() => {
+          window.__plays = []; const t0 = performance.now();
+          new MutationObserver(() => {
+            const by = (document.querySelector('#played .by') || {}).textContent || '';
+            const l = window.__plays[window.__plays.length - 1];
+            if (/が出した/.test(by) && (!l || l.by !== by)) window.__plays.push({ by, t: performance.now() - t0 });
+          }).observe(document.body, { childList: true, subtree: true, characterData: true });
+        });
+        await pg.locator('#hsStart').tap();
+        await pg.locator('#start').tap();
+        await pg.locator('#modal button:visible').first().tap({ timeout: 4000 });   // 第一発見者の知らせ
+        await pg.waitForFunction(() => window.__plays.some((e) => /きつね/.test(e.by)), null, { timeout: 8000 });
+        if (tapAfter) {
+          await pg.waitForTimeout(tapAfter);
+          const box = await pg.locator('#table').boundingBox();
+          await pg.touchscreen.tap(box.x + box.width / 2, box.y + box.height - 10);
+        }
+        await pg.waitForFunction(() => window.__plays.some((e) => /ふくろう/.test(e.by)), null, { timeout: 10000 });
+        const r = await pg.evaluate(() => {
+          const k = window.__plays.find((e) => /きつね/.test(e.by)), f = window.__plays.find((e) => /ふくろう/.test(e.by));
+          return Math.round(f.t - k.t);
+        });
+        await ctx.close();
+        return { gap: r, speed };
+      };
+      const normal = await pace(null, 0);
+      ok(normal.gap >= 2500, `ふつうの速さで、CPU のカードが読めるだけ場に残る (${normal.gap}ms / 直す前は 1350ms)`);
+      const skipped = await pace(null, 500);
+      ok(skipped.gap < 1800, `待っている間に場をタップすると、すぐ次へ進む (${skipped.gap}ms)`);
+      // 前の版で遊んだブラウザ: はやさの無い設定が残っている (落とし穴の表「初期値は、保存があっても足す」)
+      const old = { n: 4, seats: [{ name: 'あなた', cpu: false }, { name: 'くろねこ', cpu: true }, { name: 'きつね', cpu: true }, { name: 'ふくろう', cpu: true }], sound: false };
+      const fromOld = await pace(old, 0);
+      ok(fromOld.gap >= 2500, `前の版の設定が残っていても、ふつうの速さで始まる (${fromOld.gap}ms)`);
+    }
+
     if (!(await phone.locator('#btnAction').count())) {
       // 雛形のボタンは無い
     } else {
