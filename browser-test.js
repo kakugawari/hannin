@@ -130,9 +130,74 @@ async function run() {
     ok(/^#[0-9a-f]{6}$/i.test(bar.theme), `帯の色 (theme-color) が決めてある (${bar.theme})`);
 
     // ------------------------------------------------ ここにアプリごとの確認を足す
-    section('アプリの操作');
+    section('アプリの操作 (はんにんダンス)');
+    // 配り方で道すじが分かれるので、乱数を決め打ちにして 3 通り試す
+    //   2: 手札に「取り引き」(相手をタップしてえらぶ)
+    //   16: ほかの人の「情報操作」で、自分も渡す札をえらぶ番がはさまる
+    //   18: 自分が第一発見者 (表示は「あなた の番」と、すき間が入る)
+    for (const seed of [2, 16, 18]) {
+      const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+      const pg = await ctx.newPage();
+      pg.on('pageerror', (e) => errors.push(`はんにん(${seed}): ` + e.message));
+      await pg.addInitScript((sd) => {
+        let a = sd >>> 0;
+        Math.random = () => {
+          a = (a + 0x6d2b79f5) >>> 0; let t = a;
+          t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }, seed);
+      await pg.goto(URL, { waitUntil: 'load' });
+      await pg.locator('#hsStart').tap();
+      await pg.locator('#start').tap();
+      // 記録の欄は古い行から消えるので、出てきた行をぜんぶ控えておく
+      await pg.evaluate(() => {
+        window.__seenLog = [];
+        const box = document.querySelector('#log');
+        const grab = () => { for (const l of box.innerText.split('\n')) if (l.trim() && !window.__seenLog.includes(l.trim())) window.__seenLog.push(l.trim()); };
+        grab();
+        new MutationObserver(grab).observe(box, { childList: true, subtree: true, characterData: true });
+      });
+      const state = () => pg.evaluate(() => ({
+        info: document.querySelector('#infoTxt').textContent,
+        prompt: document.querySelector('#prompt').innerText,
+        picks: document.querySelectorAll('#players .pl.pick').length
+      }));
+      // 知らせ (OK)・渡す札・相手えらびを片づけながら、「カードを1まい出そう」の番まで進める
+      const settle = async (untilMyTurn) => {
+        for (let i = 0; i < 80; i++) {
+          const okBtn = pg.locator('#modal button:visible');
+          if (await okBtn.count()) { await okBtn.first().tap().catch(() => {}); await pg.waitForTimeout(300); continue; }
+          const st = await state();
+          if (st.picks) { await pg.locator('#players .pl.pick').first().tap().catch(() => {}); await pg.waitForTimeout(300); continue; }
+          if (/わたすカード/.test(st.info + st.prompt)) {
+            await pg.locator('#hand .card').first().tap().catch(() => {});
+            const go = pg.locator('#go:not([disabled]):visible');
+            if (await go.count()) await go.tap().catch(() => {});
+            await pg.waitForTimeout(300); continue;
+          }
+          if (untilMyTurn && /カードを1まい出そう/.test(st.prompt)) return true;
+          if (!untilMyTurn && !/えらんで|タップして/.test(st.info)) return true;
+          await pg.waitForTimeout(300);
+        }
+        return false;
+      };
+      const myTurn = await settle(true);
+      ok(myTurn, `配り方${seed}: 知らせや相手の札を片づけながら、自分の番がくる`);
+      if (!myTurn) { await ctx.close(); continue; }
+      const names = await pg.locator('#hand .card .cn').evaluateAll((els) => els.map((e) => e.textContent.trim()));
+      const pick = names.includes('取り引き') ? names.indexOf('取り引き') : 0;
+      await pg.locator('#hand .card').nth(pick).tap();
+      await pg.locator('#go:not([disabled])').tap({ timeout: 3000 });
+      await settle(false);
+      await pg.waitForTimeout(500);
+      const mine = (await pg.evaluate(() => window.__seenLog)).filter((l) => /^あなた は/.test(l));
+      ok(mine.some((l) => l.includes(names[pick])),
+        `配り方${seed}: 自分のカードを出せる (${names[pick]} / 記録: ${mine.join(' / ').slice(0, 50)})`);
+      await ctx.close();
+    }
     if (!(await phone.locator('#btnAction').count())) {
-      skip('雛形のボタンが無い (アーティファクトから取り込んだ)。アプリに合わせた確認をここに書く');
+      // 雛形のボタンは無い
     } else {
     await phone.locator('#btnAction').tap();
     await phone.waitForTimeout(120);
@@ -207,7 +272,8 @@ async function run() {
       await swCtx.setOffline(true);
       await swPage.reload().catch(() => {});
       await swPage.waitForTimeout(400);
-      ok(await swPage.evaluate(() => document.body.innerText.trim().length > 0).catch(() => false),
+      // 画面が絵だけで字が無いアプリもあるので、字の量ではなくページの名前で見る (はんにんダンスで踏んだ)
+      ok(await swPage.evaluate(() => document.title.length > 0 && document.body.children.length > 0).catch(() => false),
         'ネットにつながらなくても開ける');
       await swCtx.setOffline(false);
     }
