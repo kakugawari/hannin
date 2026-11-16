@@ -151,9 +151,11 @@ async function runGame(){
 async function takeTurn(i){
   const P=G.players[i];G.turn=i;UI.render();
   let ch;
-  if(P.cpu){await UI.wait(900);ch=cpuChoose(i);}
+  if(P.cpu){await UI.wait(pace().think);ch=cpuChoose(i);}
   else{await UI.ensureViewer(i);ch=await UI.humanTurn(i);}
   await resolvePlay(i,ch.ci,ch.target);
+  // 出したカードと、その結果 (記録の行) を読む間。タップすれば待たずに次へ
+  if(P.cpu&&!G.over)await UI.readPause(pace().read);
   P.hand.forEach(c=>c.fresh=false);
   UI.afterTurn(i);
 }
@@ -263,6 +265,10 @@ const DEF_NAMES=['あなた','くろねこ','きつね','ふくろう'];
 let settings={n:4,seats:[{name:'あなた',cpu:false},{name:'くろねこ',cpu:true},{name:'きつね',cpu:true},{name:'ふくろう',cpu:true}],sound:true};
 try{const s=JSON.parse(localStorage.getItem('yakata-settings'));if(s&&s.seats&&s.seats.length===4)settings=s;}catch(e){}
 const save=()=>{try{localStorage.setItem('yakata-settings',JSON.stringify(settings));}catch(e){}};
+// はやさ: CPU が考える間 (think) と、出したカードを読む間 (read)。ms
+const PACES={slow:{label:'ゆっくり',think:900,read:4000},normal:{label:'ふつう',think:700,read:2800},fast:{label:'はやい',think:500,read:1400}};
+if(!PACES[settings.speed])settings.speed='normal';
+const pace=()=>PACES[settings.speed]||PACES.normal;
 
 /* ---- sound ---- */
 let AC=null;
@@ -309,8 +315,11 @@ $('#seats').addEventListener('input',e=>{const i=+e.target.dataset.i;settings.se
 $('#hsStart').onclick=()=>{ac();SFX.tap();renderTitle();$('#setup').hidden=false;};
 $('#setupBack').onclick=()=>{SFX.tap();$('#setup').hidden=true;};
 $('#setBtn').onclick=async()=>{ac();SFX.tap();
-  while(true){const r=await modal(`<h2>せってい</h2><p>おと:<b>${settings.sound?'オン':'オフ'}</b></p>`,[settings.sound?'おとをオフにする':'おとをオンにする','とじる']);
-    if(r!==0)break;settings.sound=!settings.sound;save();}
+  const order=['slow','normal','fast'];
+  while(true){const r=await modal(`<h2>せってい</h2><p>おと:<b>${settings.sound?'オン':'オフ'}</b></p><p>はやさ:<b>${pace().label}</b><br><small>コンピュータが カードを出したあと、まつ時間。とちゅうで タップすれば すぐ次へ</small></p>`,[settings.sound?'おとをオフにする':'おとをオンにする','はやさを<br>かえる','とじる']);
+    if(r===0){settings.sound=!settings.sound;save();}
+    else if(r===1){settings.speed=order[(order.indexOf(settings.speed)+1)%3];save();}
+    else break;}
 };
 let stats={};try{stats=JSON.parse(localStorage.getItem('yakata-stats'))||{};}catch(e){}
 function recordStats(){
@@ -398,7 +407,7 @@ const UI={
       $('#infoTxt').innerHTML=`<b>${CARDS[V.hand[ui.sel].type].n}</b><br>上の人を タップしてね`;go.hidden=true;
     }else{
       const T=G.turn>=0?G.players[G.turn]:null;
-      $('#infoTxt').innerHTML=T&&!G.over?(T.cpu?`${T.name} が かんがえ中…`:`${T.name} の番`):'';go.hidden=true;
+      $('#infoTxt').innerHTML=ui.reading?'<span class="next">タップで つぎへ ▸</span>':T&&!G.over?(T.cpu?`${T.name} が かんがえ中…`:`${T.name} の番`):'';go.hidden=true;
     }
   },
   setPrompt(html){$('#prompt').innerHTML=html||'';},
@@ -411,6 +420,17 @@ const UI={
     h.hidden=false;
     await new Promise(r=>h.querySelector('button').onclick=()=>{SFX.tap();r();});
     h.hidden=true;G.viewer=i;UI.render();
+  },
+  // ms だけ待つ。そのあいだに場をタップしたら、すぐ次へ (ボタンや手札のタップは数えない)
+  readPause(ms){
+    return new Promise(res=>{
+      const g=$('#game');let done=false;
+      const end=()=>{if(done)return;done=true;clearTimeout(tm);g.removeEventListener('pointerdown',tap,true);ui.reading=false;UI.render();res();};
+      const tap=e=>{if(e.target.closest('button,#hand,#bar'))return;end();};
+      const tm=setTimeout(end,ms);
+      ui.reading=true;UI.render();
+      g.addEventListener('pointerdown',tap,true);
+    });
   },
   afterTurn(i){
     if(UI.humans()>1&&!G.over){G.viewer=null;UI.render();}
