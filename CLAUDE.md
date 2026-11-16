@@ -2,8 +2,19 @@
 
 <!-- ここから: 新しいアプリを始めたら、この節を書き換える -->
 
-**まだ何も作っていない雛形の状態。** 最初の作業で、ここに
-「何のアプリか」「どう動かすか」「決めごと」を書き足すこと。
+**はんにんダンス 〜犯人はおどる〜** ― 犯人カードを持っている人を当てるカードゲーム。3〜4にんで、
+それぞれ「ひと」(スマホをまわす) か「CPU」を選べる。第一発見者・少年・アリバイ・取り引き・うわさ などのカードを出しあう。
+
+- もとは Claude のチャットで作ったアーティファクト「はんにんダンス 〜犯人はおどる〜」
+  (`https://claude.ai/artifact/PszKcD2W51dje6h9fRUPRw`)。`import-artifact.js` で分けて取り込んだ
+- 画面とロジックは `app.js` にまとめて入っている (`core.js` はまだ無い)。絵は webp で `index.html` と `app.js` に埋め込まれている
+- 記録は `localStorage`。アーティファクトで遊んだ記録は引き継がれない
+- アーティファクトは `manifest.json`・`icon-180.png`・`icon-192.png`・`sw.js` を読み込むのに、中には入っていなかった。
+  取り込むときに作った: アイコンはタイトルの絵から「月と踊る犯人」を正方形に切り出した (`icon.svg` は無い。`make-icon.js` は使っていない)。
+  `sw.js` はネット優先 (落とし穴の表「直したのに古い画面が出る」)
+- アーティファクトを直してもう一度取り込むときは、取り込みのあとで次を付け直す
+  - `styles.css`: `html,body` を `height:100vh; position:relative`、`.screen`・`.ov` を `position:absolute`
+    (落とし穴の表「ホーム画面から開くと下に帯」)
 
 <!-- ここまで -->
 
@@ -83,15 +94,14 @@ npm run test:ui    # ブラウザで実際に動かすテスト (要 npm i -D pl
 
 ```
 index.html / styles.css   画面
-core.js                   ロジック。DOM を触らない。ブラウザと node の両方で動く
 app.js                    操作・描画
-core.test.js              ロジックのテスト (node --test)
 browser-test.js           ブラウザで動かすテスト
 serve.js                  開発用サーバー
 import-artifact.js        アーティファクト (1 枚の HTML) を上の形に分ける
 import-artifact.test.js   その道具のテスト
-make-icon.js              icon.svg から PNG のアイコンを作る (名前:大きさ で何枚でも)
-apple-touch-icon.png      その PNG (180x180)
+make-icon.js              icon.svg から PNG のアイコンを作る (このアプリでは使っていない)
+icon-180/192/512.png      アイコン (180 はホーム画面用)。タイトルの絵から切り出した
+manifest.json / sw.js     ホーム画面に置くための情報 / オフラインでも開けるようにする (ネット優先)
 .github/workflows/pages.yml  main に入ったらテストして GitHub Pages に公開する
 ```
 
