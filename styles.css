@@ -93,23 +93,27 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 #table::before{content:"♪";position:absolute;left:7%;top:6%;font-size:26px;color:#ff7ac8;opacity:.75;transform:rotate(-12deg);pointer-events:none}
 #table::after{content:"♫";position:absolute;right:10%;bottom:7%;font-size:22px;color:#ffd36a;opacity:.6;transform:rotate(10deg);pointer-events:none}
 #played{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:40px;position:relative;z-index:1}
-#played .card.played{--w:170px;box-shadow:0 0 0 2px #ffe08a,0 0 22px 4px #ffd36a88,0 0 50px 10px #7d8cff66,0 10px 18px #0008}
-#played .by{font-size:17px;font-weight:800;color:#fff;letter-spacing:.04em;text-shadow:0 2px 0 #0008}
+#played .card.played{--w:138px;box-shadow:0 0 0 2px #ffe08a,0 0 22px 4px #ffd36a88,0 0 50px 10px #7d8cff66,0 10px 18px #0008}
+#played .by{font-size:18px;font-weight:800;color:#fff;letter-spacing:.04em;text-shadow:0 2px 0 #0008}
 #played .by b{color:#ffd36a}
 #log{width:100%;max-width:410px;font-size:14px;line-height:1.55;text-align:center;color:#e8e2ff;min-height:72px;padding:0 12px;position:relative;z-index:1}
-#log div{opacity:.5;font-size:13px}
-#log div:nth-last-child(2){opacity:.75;font-size:14px}
-#log div:last-child{opacity:1;font-weight:800;font-size:18px;color:#fff;text-shadow:0 2px 0 #0009,0 0 12px #7d8cff99;margin-top:2px}
-#prompt{min-height:22px;text-align:center;font-size:15px;font-weight:800;color:var(--gold2)}
+#log div{opacity:.55;font-size:14px}
+#log div:nth-last-child(2){opacity:.8;font-size:16px}
+#log div:last-child{opacity:1;font-weight:800;font-size:20px;color:#fff;text-shadow:0 2px 0 #0009,0 0 12px #7d8cff99;margin-top:2px}
+/* 下の並び: 案内 (手札のすぐ上) → 手札 → 決定の帯。HTML の順は変えず order で並べる */
+#prompt{order:1;min-height:24px;text-align:center;font-size:16px;font-weight:800;color:var(--gold2);margin-bottom:-6px}
 #prompt button{margin-left:8px;background:#ffffff1c;color:#fff;border-radius:9px;padding:3px 12px;font-size:13px}
-#info{min-height:74px;background:#ffffff0d;border-radius:14px;padding:8px 12px;display:flex;align-items:center;gap:10px}
-#info .txt{flex:1;font-size:13px;line-height:1.5}
-#info .txt b{font-size:15px;color:var(--gold2)}
+#info{order:3;height:76px;background:#ffffff0d;border-radius:16px;padding:8px 10px 8px 14px;display:flex;align-items:center;gap:10px;
+  margin-bottom:env(safe-area-inset-bottom)}
+#info .txt{flex:1;font-size:12.5px;line-height:1.4;overflow:hidden;max-height:100%}
+#info .txt .hint{display:block;text-align:center;color:var(--muted);font-size:13px;letter-spacing:.04em}
+#info .txt b{font-size:14px;color:var(--gold2)}
 #info .txt .next{color:var(--muted);font-size:12px;letter-spacing:.06em}
 #info .txt .ng{color:#ff9b8a;font-size:12px}
-#go{flex:none;padding:12px 16px;border-radius:12px;font-weight:800;font-size:16px;background:linear-gradient(#f1d78c,#c99d3c);color:#2b1d08;box-shadow:0 3px 0 #7a5a1c}
-#go:disabled{filter:grayscale(1) brightness(.6);box-shadow:none}
-#hand{display:flex;justify-content:center;gap:2vw;min-height:calc(var(--cw)*1.45 + 14px);align-items:flex-end;padding-top:12px}
+#go{flex:none;min-width:108px;height:48px;padding:0 18px;border-radius:14px;font-weight:900;font-size:18px;background:linear-gradient(#f1d78c,#c99d3c);color:#2b1d08;box-shadow:0 3px 0 #7a5a1c}
+/* 押せないボタンは灰色で残さず、出さない (壊れて見えるため)。カードをえらぶと金色で出る */
+#go:disabled{display:none}
+#hand{order:2;display:flex;justify-content:center;gap:2vw;min-height:calc(var(--cw)*1.45 + 14px);align-items:flex-end;padding-top:12px}
 #hand .hid{color:var(--muted);font-size:14px;align-self:center}
 
 /* ---------- card ---------- */

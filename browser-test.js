@@ -245,8 +245,8 @@ async function run() {
         const last = document.querySelector('#log div:last-child');
         return { w: Math.round(c.width), font: parseFloat(getComputedStyle(last).fontSize) };
       });
-      ok(size.w >= 160, `場のカードが大きい (幅 ${size.w}pt / 前は 107pt)`);
-      ok(size.font >= 17, `いちばん新しい説明の字が大きい (${size.font}px / 前は 13px)`);
+      ok(size.w >= 130 && size.w <= 150, `場のカードが大きすぎず小さすぎない (幅 ${size.w}pt / 取り込み時 107pt・170pt では説明の字が負けた)`);
+      ok(size.font >= 19, `いちばん新しい説明の字が大きい (${size.font}px / 取り込み時 13px)`);
       // カードは白い台紙なしで、そのカードの色に塗る (色でぱっと見分けるため)。名前は白
       const look = await pg.evaluate(() => {
         const c = document.querySelector('#played .card');
@@ -272,6 +272,30 @@ async function run() {
       ok(tiles.every((t) => t.pop >= 8), `顔がタイルの上のふちから出ている (${tiles.map((t) => t.pop).join(', ')}pt)`);
       ok(tiles.every((t) => !t.hit), 'あなた・なかま の札が、顔にも札どうしにも重ならない');
       await pg.evaluate(() => { G.players[0].acc = false; G.players[2].acc = false; UI.render(); });
+      // 下の並び: 案内は手札のすぐ上、決定の帯はいちばん下。押せないボタンは出さない
+      const low = await pg.evaluate(() => {
+        const r = (q) => document.querySelector(q).getBoundingClientRect();
+        return { prompt: r('#prompt'), hand: r('#hand'), info: r('#info'), go: getComputedStyle(document.querySelector('#go')).display };
+      });
+      ok(low.prompt.bottom <= low.hand.top + 2 && low.hand.top - low.prompt.bottom < 12 && low.info.top >= low.hand.bottom - 1,
+        `案内 → 手札 → 決定の帯 の順に並ぶ (案内の下 ${Math.round(low.prompt.bottom)} / 手札 ${Math.round(low.hand.top)}〜${Math.round(low.hand.bottom)} / 帯 ${Math.round(low.info.top)})`);
+      ok(low.go === 'none', `カードをえらぶまで、押せないボタンは出さない (${low.go})`);
+      // 12 種類のカードの説明が、出せる・出せないのどちらでも帯に収まる (はみ出すと説明が切れて読めない)
+      const fit = await pg.evaluate(() => {
+        const box = document.querySelector('#infoTxt'), go = document.querySelector('#go');
+        go.disabled = false; go.hidden = false; go.textContent = 'わたす';
+        const bad = [];
+        for (const t of Object.keys(CARDS)) {
+          for (const ng of [false, true]) {
+            const why = ng ? (whyNot({ hand: [] }, { type: t }) || '手札が3まい以下になったら 使える') : '';
+            box.innerHTML = `<b>${CARDS[t].n}</b>　${ng ? `<span class="ng">※ ${why}</span>` : CARDS[t].t}`;
+            if (box.scrollHeight > box.clientHeight + 1) bad.push(t + (ng ? '(出せない)' : ''));
+          }
+        }
+        UI.render();
+        return bad;
+      });
+      ok(fit.length === 0, `12 種類のカードの説明が帯に収まる (はみ出し: ${fit.join(', ') || 'なし'})`);
       // 手札をえらぶと画面が描き直される。場のカードは作り直さない (作り直すと「ぽん」が毎回出る)
       await pg.evaluate(() => { window.__pc = document.querySelector('#played .card'); });
       await pg.locator('#hand .card').first().tap();

@@ -407,9 +407,10 @@ const UI={
     if(ui.mode==='play'||ui.mode==='give'){
       if(ui.sel>=0&&V){
         const c=V.hand[ui.sel],ok=ui.mode==='give'||ui.legal.includes(ui.sel);
-        $('#infoTxt').innerHTML=`<b>${CARDS[c.type].n}</b><br>${CARDS[c.type].t}${!ok?`<br><span class="ng">※ ${whyNot(V,c)}</span>`:''}`;
+        // 出せないときは、説明の代わりに理由を出す (帯に収めるため。いちばん知りたいのは理由)
+        $('#infoTxt').innerHTML=`<b>${CARDS[c.type].n}</b>　${ok?CARDS[c.type].t:`<span class="ng">※ ${whyNot(V,c)}</span>`}`;
         go.disabled=!ok;
-      }else{$('#infoTxt').innerHTML=ui.mode==='give'?'わたすカードを タップしてえらんでね':'出すカードを タップしてえらんでね';go.disabled=true;}
+      }else{$('#infoTxt').innerHTML='<span class="hint">↑ カードを タップ</span>';go.disabled=true;}   // 案内は上の行にあるので、ここでは くり返さない
       go.textContent=ui.btn;go.hidden=false;
     }else if(ui.mode==='target'){
       $('#infoTxt').innerHTML=`<b>${CARDS[V.hand[ui.sel].type].n}</b><br>上の人を タップしてね`;go.hidden=true;
