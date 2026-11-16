@@ -196,6 +196,22 @@ async function run() {
         `配り方${seed}: 自分のカードを出せる (${names[pick]} / 記録: ${mine.join(' / ').slice(0, 50)})`);
       await ctx.close();
     }
+    section('タイトルの色味 (B 夜の青)');
+    {
+      const pg = await browser.newPage({ viewport: { width: 430, height: 932 } });
+      await pg.goto(URL, { waitUntil: 'load' });
+      const tone = await pg.evaluate(() => ({
+        filter: getComputedStyle(document.querySelector('#title .tbg img')).filter,
+        layer: getComputedStyle(document.querySelector('#title .tbg'), '::after').pointerEvents
+      }));
+      ok(/hue-rotate/.test(tone.filter) && /saturate\(0\.78\)/.test(tone.filter), `タイトルに夜の青の色味がかかっている (${tone.filter})`);
+      // 紙のざらつきの層は絵の上に重なる。タップは下のボタンへ通す (落とし穴の表「上に重ねた層が全面をふさぐ」)
+      await pg.locator('#hsStart').click();
+      ok(tone.layer === 'none' && await pg.evaluate(() => !document.querySelector('#setup').hidden),
+        '重ねた層があっても「はじめる」が押せる');
+      await pg.close();
+    }
+
     section('場 (いちばんの見せ場)');
     {
       // 配り方18: あなたが第一発見者 → CPU 3 人が出したあと、あなたの番
