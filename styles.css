@@ -65,14 +65,31 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 .pl.dim{opacity:.35}
 @keyframes pulse{50%{box-shadow:0 0 0 4px #ff8a6566}}
 
-#table{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
-  background:radial-gradient(closest-side,#2c5a45 0%,#1d3d31 70%,transparent 100%);border-radius:50%/40%;position:relative}
-#played{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:40px}
-#played .by{font-size:12px;color:#d7e8dd}
-#log{width:100%;max-width:400px;font-size:13px;line-height:1.5;text-align:center;color:#e9efe9;min-height:58px;padding:0 10px}
-#log div{opacity:.45}
-#log div:last-child{opacity:1;font-weight:700}
-#log div:nth-last-child(2){opacity:.7}
+/* 場: タイトルと同じ「紫の夜・月明かり・金色」。動かない背景なので CSS で敷く (毎フレーム描かない) */
+#table{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;position:relative;
+  border-radius:28px;overflow:hidden;
+  background:
+    radial-gradient(1.6px 1.6px at 12% 18%,#fff8 50%,transparent 51%),
+    radial-gradient(1.2px 1.2px at 84% 12%,#fff9 50%,transparent 51%),
+    radial-gradient(1.4px 1.4px at 22% 76%,#ffe9a888 50%,transparent 51%),
+    radial-gradient(1.2px 1.2px at 90% 64%,#fff7 50%,transparent 51%),
+    radial-gradient(1.8px 1.8px at 70% 30%,#ffe9a8aa 50%,transparent 51%),
+    radial-gradient(1.2px 1.2px at 8% 52%,#fff6 50%,transparent 51%),
+    radial-gradient(60px 60px at 86% 10%,#fff3c8 0%,#ffe08a 38%,#ffd36a33 60%,transparent 72%),
+    radial-gradient(150px 150px at 86% 10%,#b98cff33,transparent 70%),
+    radial-gradient(58% 42% at 50% 46%,#7a4fd0cc 0%,#4a2f94aa 45%,transparent 75%),
+    linear-gradient(180deg,#2a2466 0%,#211c52 55%,#1a1640 100%);
+  box-shadow:inset 0 0 0 1.5px #b98cff40,inset 0 -40px 60px #0006}
+#table::before{content:"♪";position:absolute;left:7%;top:6%;font-size:26px;color:#ff7ac8;opacity:.75;transform:rotate(-12deg);pointer-events:none}
+#table::after{content:"♫";position:absolute;right:10%;bottom:7%;font-size:22px;color:#ffd36a;opacity:.6;transform:rotate(10deg);pointer-events:none}
+#played{display:flex;flex-direction:column;align-items:center;gap:8px;min-height:40px;position:relative;z-index:1}
+#played .card.played{--w:170px;box-shadow:0 0 0 2px #ffe08a,0 0 22px 4px #ffd36a88,0 0 50px 10px #a874ff66,0 10px 18px #0008}
+#played .by{font-size:17px;font-weight:800;color:#fff;letter-spacing:.04em;text-shadow:0 2px 0 #0008}
+#played .by b{color:#ffd36a}
+#log{width:100%;max-width:410px;font-size:14px;line-height:1.55;text-align:center;color:#e8e2ff;min-height:72px;padding:0 12px;position:relative;z-index:1}
+#log div{opacity:.5;font-size:13px}
+#log div:nth-last-child(2){opacity:.75;font-size:14px}
+#log div:last-child{opacity:1;font-weight:800;font-size:18px;color:#fff;text-shadow:0 2px 0 #0009,0 0 12px #a874ff99;margin-top:2px}
 #prompt{min-height:22px;text-align:center;font-size:15px;font-weight:800;color:var(--gold2)}
 #prompt button{margin-left:8px;background:#ffffff1c;color:#fff;border-radius:9px;padding:3px 12px;font-size:13px}
 #info{min-height:74px;background:#ffffff0d;border-radius:14px;padding:8px 12px;display:flex;align-items:center;gap:10px}

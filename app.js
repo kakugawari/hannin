@@ -385,7 +385,13 @@ const UI={
       return `<div class="pl ${G.turn===P.idx?'turn':''} ${P.idx===G.viewer?'me':''} ${pick?'pick':''} ${dim?'dim':''}" data-p="${P.idx}">
         ${P.idx===G.viewer?'<span class="you">あなた</span>':''}${P.acc?'<span class="tag">なかま</span>':''}
         ${avatarSVG(P.av,P.mood)}<div class="nm">${P.name}</div><div class="cnt">${'<i></i>'.repeat(P.hand.length)}</div></div>`;}).join('');
-    $('#played').innerHTML=G.last?`${cardHTML(G.last,{cls:'played'})}<div class="by">${G.players[G.lastBy].name} が出した</div>`:'';
+    // 場のカード: 新しく出たときだけ「ぽん」と出す (render は何度も呼ばれるので、毎回は動かさない)
+    if(ui.shown!==G.last||ui.shownBy!==G.lastBy){
+      ui.shown=G.last;ui.shownBy=G.lastBy;
+      $('#played').innerHTML=G.last?`${cardHTML(G.last,{cls:'played'})}<div class="by"><b>${G.players[G.lastBy].name}</b> が出した</div>`:'';
+      const pc=$('#played .card');
+      if(pc&&pc.animate)pc.animate([{transform:'scale(.6) rotate(-8deg)',opacity:0},{transform:'scale(1.08) rotate(2deg)',opacity:1,offset:.6},{transform:'scale(1) rotate(0)'}],{duration:420,easing:'cubic-bezier(.2,.9,.3,1.2)'});
+    }
     $('#log').innerHTML=G.log.slice(-3).map(s=>`<div>${s}</div>`).join('');
     // hand
     const V=G.viewer!=null?G.players[G.viewer]:null;

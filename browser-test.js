@@ -196,6 +196,50 @@ async function run() {
         `配り方${seed}: 自分のカードを出せる (${names[pick]} / 記録: ${mine.join(' / ').slice(0, 50)})`);
       await ctx.close();
     }
+    section('場 (いちばんの見せ場)');
+    {
+      // 配り方18: あなたが第一発見者 → CPU 3 人が出したあと、あなたの番
+      const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+      const pg = await ctx.newPage();
+      pg.on('pageerror', (e) => errors.push('場: ' + e.message));
+      await pg.addInitScript(() => {
+        let a = 18;
+        Math.random = () => {
+          a = (a + 0x6d2b79f5) >>> 0; let t = a;
+          t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      });
+      await pg.goto(URL, { waitUntil: 'load' });
+      await pg.locator('#hsStart').tap();
+      await pg.locator('#start').tap();
+      await pg.locator('#modal button:visible').first().tap({ timeout: 4000 });
+      for (let i = 0; i < 80; i++) {     // 読む間はタップで進め、自分の番まで
+        if (await pg.evaluate(() => /カードを1まい出そう/.test(document.querySelector('#prompt').textContent))) break;
+        const okBtn = pg.locator('#modal button:visible');
+        if (await okBtn.count()) { await okBtn.first().tap().catch(() => {}); continue; }
+        if (await pg.evaluate(() => /タップで つぎへ/.test(document.querySelector('#infoTxt').textContent))) {
+          const box = await pg.locator('#table').boundingBox();
+          await pg.touchscreen.tap(box.x + box.width / 2, box.y + box.height - 10);
+        }
+        await pg.waitForTimeout(250);
+      }
+      const size = await pg.evaluate(() => {
+        const c = document.querySelector('#played .card').getBoundingClientRect();
+        const last = document.querySelector('#log div:last-child');
+        return { w: Math.round(c.width), font: parseFloat(getComputedStyle(last).fontSize) };
+      });
+      ok(size.w >= 160, `場のカードが大きい (幅 ${size.w}pt / 前は 107pt)`);
+      ok(size.font >= 17, `いちばん新しい説明の字が大きい (${size.font}px / 前は 13px)`);
+      // 手札をえらぶと画面が描き直される。場のカードは作り直さない (作り直すと「ぽん」が毎回出る)
+      await pg.evaluate(() => { window.__pc = document.querySelector('#played .card'); });
+      await pg.locator('#hand .card').first().tap();
+      await pg.waitForTimeout(200);
+      const same = await pg.evaluate(() => window.__pc === document.querySelector('#played .card') && document.querySelector('#hand .card.sel') !== null);
+      ok(same, '手札をえらんで描き直しても、場のカードは作り直されない');
+      await ctx.close();
+    }
+
     section('はやさ (CPU が出したカードを読む間)');
     {
       // 配り方13: くろねこが第一発見者 → きつね → ふくろう と CPU が続く。あなたの番はそのあと
