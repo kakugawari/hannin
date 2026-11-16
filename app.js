@@ -261,6 +261,8 @@ function cardHTML(c,opt={}){
 
 const $=s=>document.querySelector(s);
 const AVS=['kid','cat','fox','owl'];
+// キャラの色 (顔の絵の地の色)。タイルの名札と顔の輪に使う
+const AVC={kid:'#3d8bf2',cat:'#8058b3',fox:'#3e965f',owl:'#a0624e'};
 const DEF_NAMES=['あなた','くろねこ','きつね','ふくろう'];
 let settings={n:4,seats:[{name:'あなた',cpu:false},{name:'くろねこ',cpu:true},{name:'きつね',cpu:true},{name:'ふくろう',cpu:true}],sound:true};
 try{const s=JSON.parse(localStorage.getItem('yakata-settings'));if(s&&s.seats&&s.seats.length===4)settings=s;}catch(e){}
@@ -382,7 +384,7 @@ const UI={
     const n=G.n;$('#players').style.gridTemplateColumns=`repeat(${n},1fr)`;
     $('#players').innerHTML=G.players.map(P=>{
       const pick=ui.mode==='target'&&ui.cands.includes(P.idx),dim=ui.mode==='target'&&!pick;
-      return `<div class="pl ${G.turn===P.idx?'turn':''} ${P.idx===G.viewer?'me':''} ${pick?'pick':''} ${dim?'dim':''}" data-p="${P.idx}">
+      return `<div class="pl ${G.turn===P.idx?'turn':''} ${P.idx===G.viewer?'me':''} ${pick?'pick':''} ${dim?'dim':''}" data-p="${P.idx}" style="--pc:${AVC[P.av]||'#6f6f78'}">
         ${P.idx===G.viewer?'<span class="you">あなた</span>':''}${P.acc?'<span class="tag">なかま</span>':''}
         ${avatarSVG(P.av,P.mood)}<div class="nm">${P.name}</div><div class="cnt">${'<i></i>'.repeat(P.hand.length)}</div></div>`;}).join('');
     // 場のカード: 新しく出たときだけ「ぽん」と出す (render は何度も呼ばれるので、毎回は動かさない)

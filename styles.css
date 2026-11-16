@@ -57,16 +57,20 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 #bar .t{font-size:14px;color:var(--gold2);letter-spacing:.15em;text-align:center;line-height:1.1}
 #bar .t small{display:block;font-size:9px;letter-spacing:.1em;color:var(--muted)}
 #bar button{background:#ffffff12;color:#dfe3f2;border-radius:10px;padding:5px 12px;font-size:13px}
-#players{display:grid;gap:6px}
+#players{display:grid;gap:6px;padding-top:14px;margin-bottom:8px}
 .pl{position:relative;background:#ffffff0c;border:1.5px solid #ffffff14;border-radius:14px;padding:6px 4px 5px;text-align:center;transition:.2s}
-.pl .av{width:46px;height:46px;display:block;margin:0 auto}
-.pl .nm{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+/* B「名札」: 顔を大きくしてキャラの色の輪で囲み、下にキャラの色の名札 (白い字)。地は暗いまま (カードと見分ける) */
+.pl .av{width:60px;height:60px;display:block;margin:-18px auto 0;border-radius:50%;position:relative;
+  /* C「飛び出す顔」: タイルの上のふちから顔を出す。地の色で一回り縁取ってから、キャラの色の輪 */
+  box-shadow:0 0 0 2.5px #151a2e,0 0 0 5.5px var(--pc,#6f6f78),0 6px 12px #000a}
+.pl .nm{display:inline-block;max-width:94%;margin-top:7px;background:var(--pc,#6f6f78);color:#fff;border-radius:999px;padding:1px 10px;
+  font-size:12px;font-weight:800;text-shadow:0 1px 0 #0005;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pl .cnt{display:flex;justify-content:center;gap:2px;margin-top:3px;height:14px}
 .pl .cnt i{width:9px;height:13px;border-radius:2px;background:linear-gradient(135deg,#3a4677,#26305a);border:1px solid var(--gold)}
 .pl.turn{border-color:var(--gold);background:#d8b45a22;box-shadow:0 0 14px #d8b45a55}
-.pl.me .nm{color:var(--gold2)}
-.pl .tag{position:absolute;top:-7px;right:-4px;background:#6b3fa0;color:#fff;font-size:10px;font-weight:800;border-radius:8px;padding:1px 6px;border:1px solid #c9a8ff}
-.pl .you{position:absolute;top:-7px;left:-4px;background:var(--gold);color:var(--ink);font-size:10px;font-weight:800;border-radius:8px;padding:1px 6px}
+.pl.me .nm{color:#fff;box-shadow:0 0 0 1.5px var(--gold2)}
+.pl .tag{position:absolute;bottom:-9px;right:-4px;z-index:1;white-space:nowrap;background:#6b3fa0;color:#fff;font-size:10px;font-weight:800;border-radius:8px;padding:1px 6px;border:1px solid #c9a8ff}
+.pl .you{position:absolute;bottom:-9px;left:-4px;z-index:1;white-space:nowrap;background:var(--gold);color:var(--ink);font-size:10px;font-weight:800;border-radius:8px;padding:1px 6px}
 .pl.pick{border-color:#ff8a65;animation:pulse 1s infinite;cursor:pointer}
 .pl.dim{opacity:.35}
 @keyframes pulse{50%{box-shadow:0 0 0 4px #ff8a6566}}
