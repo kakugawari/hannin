@@ -256,6 +256,22 @@ async function run() {
       ok(!/246, 236, 214/.test(look.bg) && /linear-gradient/.test(look.bg) && look.name === 'rgb(255, 255, 255)',
         `カードが色で塗られ、名前が白い (${look.name})`);
       ok(look.colors === look.kinds, `カードの色が 12 種類ぜんぶ違う (${look.colors}/${look.kinds})`);
+      // 人のタイル: キャラの色の名札 + タイルの上のふちから出る顔。札 (あなた・なかま) は顔に重ねない
+      await pg.evaluate(() => { G.players[0].acc = true; G.players[2].acc = true; UI.render(); });
+      const tiles = await pg.evaluate(() => {
+        const ov = (a, b) => !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
+        return [...document.querySelectorAll('#players .pl')].map((t) => {
+          const box = t.getBoundingClientRect(), av = t.querySelector('.av').getBoundingClientRect();
+          const badges = [...t.querySelectorAll('.you,.tag')].map((e) => e.getBoundingClientRect());
+          return { plate: getComputedStyle(t.querySelector('.nm')).backgroundColor, pop: Math.round(box.top - av.top),
+            hit: badges.some((b) => ov(b, av)) || (badges.length === 2 && ov(badges[0], badges[1])) };
+        });
+      });
+      ok(new Set(tiles.map((t) => t.plate)).size === tiles.length && tiles.every((t) => t.plate !== 'rgba(0, 0, 0, 0)'),
+        `名札がキャラの色で、${tiles.length} 人とも違う (${tiles.map((t) => t.plate).join(' / ')})`);
+      ok(tiles.every((t) => t.pop >= 8), `顔がタイルの上のふちから出ている (${tiles.map((t) => t.pop).join(', ')}pt)`);
+      ok(tiles.every((t) => !t.hit), 'あなた・なかま の札が、顔にも札どうしにも重ならない');
+      await pg.evaluate(() => { G.players[0].acc = false; G.players[2].acc = false; UI.render(); });
       // 手札をえらぶと画面が描き直される。場のカードは作り直さない (作り直すと「ぽん」が毎回出る)
       await pg.evaluate(() => { window.__pc = document.querySelector('#played .card'); });
       await pg.locator('#hand .card').first().tap();
