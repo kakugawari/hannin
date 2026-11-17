@@ -139,10 +139,11 @@ async function runGame(){
   const P=G.players[s],hi=P.hand.findIndex(c=>c.type==='hakken');
   G.turn=s;UI.render();
   await UI.wait(500);
+  await UI.flyPlay(s,P.hand[hi],s===G.viewer?document.querySelector(`#hand .card[data-ci="${hi}"]`):null);
   const c=P.hand.splice(hi,1)[0];G.last=c;G.lastBy=s;G.lastTo=null;
   UI.sfx('play');
   log(`${W(P)} が 第一発見者! じけんが おきた…`);
-  await UI.announce(s,`<p><b>${P.name}</b> が じけんを はっけん!</p><p>犯人は この中に いる…。<br>${G.players[(s+1)%G.n].name} から じゅんばんに カードを出そう。</p>`,c);
+  await UI.announce(s,`<p class="lead"><b>${P.name}</b> が じけんを はっけん!</p><p>犯人は この中に いる…</p>`,null,null,Math.max(2200,pace().read));
   let t=(s+1)%G.n,guard=0;
   while(!G.over&&guard++<500){
     if(G.players[t].hand.length)await takeTurn(t);
@@ -162,6 +163,8 @@ async function takeTurn(i){
 }
 function setMood(i,m,ms){const P=G.players[i];P.mood=m;UI.render();if(ms)setTimeout(()=>{if(G&&!G.over&&P.mood===m){P.mood='normal';UI.render();}},ms);}
 async function resolvePlay(i,ci,target){
+  const P0=G.players[i];
+  await UI.flyPlay(i,P0.hand[ci],i===G.viewer?document.querySelector(`#hand .card[data-ci="${ci}"]`):null);
   const P=G.players[i],c=P.hand.splice(ci,1)[0],T=target!=null?G.players[target]:null;
   G.last=c;G.lastBy=i;G.lastTo=T?target:null;UI.sfx('play');
   log(`\u0003${W(P)}「${nm(c.type)}」`+(T?` → ${W(T)}`:''));
@@ -172,10 +175,10 @@ async function resolvePlay(i,ci,target){
     case 'tantei':{
       if(!T){log('きく相手が いない…');break;}
       const isC=has(T,'hannin'),yes=isC&&!has(T,'alibi');
-      await UI.announce(i,`<div class="speech">「${T.name}さん、あなたが 犯人ですね?」</div>`);
+      await UI.announce(i,`<div class="speech">「${T.name}さん、あなたが 犯人ですね?」</div>`,null,null,Math.max(1500,pace().read*.7));
       if(yes){UI.sfx('hit');setMood(target,'shock');await UI.announce(target,`<div class="speech">「……はい。わたしが 犯人です。」</div>`,null,'shock');return endGame('tantei',i,target);}
       UI.sfx('miss');
-      await UI.announce(target,`<div class="speech">「いいえ、ちがいます。」</div>`,null,'happy');setMood(i,'sad',2500);
+      await UI.announce(target,`<div class="speech">「いいえ、ちがいます。」</div>`,null,'happy',Math.max(1500,pace().read*.7));setMood(i,'sad',2500);
       log(`${W(T)}「ちがいます」`);
       knowAll(p=>{if(p[target]<.999)p[target]*=.25;});
       break;}
@@ -197,6 +200,7 @@ async function resolvePlay(i,ci,target){
       if(!T){log('いぬは ねむっている…');break;}
       const k=Math.floor(Math.random()*T.hand.length),got=T.hand[k];
       UI.sfx('dog');
+      await UI.fly(UI.spot(target),UI.tableSpot(),cardHTML(got,{cls:'flyc'}),600);
       await UI.announce(i,`<p>いぬが <b>${T.name}</b> の手札から 1まい くわえてきた!</p>`,got);
       if(got.type==='hannin'){UI.sfx('hit');setMood(target,'shock');return endGame('inu',i,target);}
       log(`いぬは「${nm(got.type)}」をくわえてきた。${W(T)} にかえした`);
@@ -274,7 +278,7 @@ let settings={n:4,seats:[{name:'あなた',cpu:false},{name:'くろねこ',cpu:t
 try{const s=JSON.parse(localStorage.getItem('yakata-settings'));if(s&&s.seats&&s.seats.length===4)settings=s;}catch(e){}
 const save=()=>{try{localStorage.setItem('yakata-settings',JSON.stringify(settings));}catch(e){}};
 // はやさ: CPU が考える間 (think) と、出したカードを読む間 (read)。ms
-const PACES={slow:{label:'ゆっくり',think:900,read:4000},normal:{label:'ふつう',think:700,read:2800},fast:{label:'はやい',think:500,read:1400}};
+const PACES={slow:{label:'ゆっくり',think:650,read:4000},normal:{label:'ふつう',think:450,read:2800},fast:{label:'はやい',think:250,read:1400}};
 if(!PACES[settings.speed])settings.speed='normal';
 const pace=()=>PACES[settings.speed]||PACES.normal;
 
@@ -309,7 +313,7 @@ const SFX={
 function renderTitle(){
   document.querySelectorAll('#segN button').forEach(b=>b.classList.toggle('on',+b.dataset.n===settings.n));
   $('#seats').innerHTML=settings.seats.slice(0,settings.n).map((s,i)=>`
-    <div class="seat">${avatarSVG(AVS[i])}<input data-i="${i}" value="${s.name.replace(/"/g,'&quot;')}" maxlength="8">
+    <div class="seat2" style="--pc:${AVC[AVS[i]]}">${avatarSVG(AVS[i])}<input data-i="${i}" value="${s.name.replace(/"/g,'&quot;')}" maxlength="8" aria-label="なまえ">
     <div class="seg"><button data-i="${i}" data-cpu="0" class="${!s.cpu?'on':''}">ひと</button><button data-i="${i}" data-cpu="1" class="${s.cpu?'on':''}">CPU</button></div></div>`).join('');
 }
 $('#segN').onclick=e=>{const b=e.target.closest('button');if(!b)return;settings.n=+b.dataset.n;save();renderTitle();SFX.tap();};
@@ -322,12 +326,17 @@ $('#seats').addEventListener('click',e=>{
 $('#seats').addEventListener('input',e=>{const i=+e.target.dataset.i;settings.seats[i].name=e.target.value;save();});
 $('#hsStart').onclick=()=>{ac();SFX.tap();renderTitle();$('#setup').hidden=false;};
 $('#setupBack').onclick=()=>{SFX.tap();$('#setup').hidden=true;};
+// せってい: 今どれになっているかが見える切りかえ (前は「おとをオフにする」の押しボタンで、今の状態が分かりにくかった)
 $('#setBtn').onclick=async()=>{ac();SFX.tap();
-  const order=['slow','normal','fast'];
-  while(true){const r=await modal(`<h2>せってい</h2><p>おと:<b>${settings.sound?'オン':'オフ'}</b></p><p>はやさ:<b>${pace().label}</b><br><small>コンピュータが カードを出したあと、まつ時間。とちゅうで タップすれば すぐ次へ</small></p>`,[settings.sound?'おとをオフにする':'おとをオンにする','はやさを<br>かえる','とじる']);
-    if(r===0){settings.sound=!settings.sound;save();}
-    else if(r===1){settings.speed=order[(order.indexOf(settings.speed)+1)%3];save();}
-    else break;}
+  const seg=(k,opts,cur)=>`<div class="seg" data-k="${k}">${opts.map(([v,l])=>`<button data-v="${v}" class="${v===cur?'on':''}">${l}</button>`).join('')}</div>`;
+  const p=modal(`<h2>せってい</h2>
+    <div class="srow"><div class="sl">おと</div>${seg('sound',[['1','オン'],['0','オフ']],settings.sound?'1':'0')}</div>
+    <div class="srow"><div class="sl">はやさ<small>コンピュータが カードを出したあと、まつ時間。とちゅうで タップすれば すぐ次へ</small></div>${seg('speed',['slow','normal','fast'].map(k=>[k,PACES[k].label]),settings.speed)}</div>`,['とじる']);
+  const box=$('#mbox');
+  box.onclick=e=>{const b=e.target.closest('.srow .seg button');if(!b)return;const k=b.parentElement.dataset.k;
+    if(k==='sound')settings.sound=b.dataset.v==='1';else settings.speed=b.dataset.v;
+    save();SFX.tap();b.parentElement.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));};
+  await p;box.onclick=null;
 };
 let stats={};try{stats=JSON.parse(localStorage.getItem('yakata-stats'))||{};}catch(e){}
 function recordStats(){
@@ -338,7 +347,8 @@ function recordStats(){
 $('#rankBtn').onclick=async()=>{ac();SFX.tap();
   const list=Object.entries(stats).sort((a,b)=>b[1].w-a[1].w||(b[1].w/b[1].g)-(a[1].w/a[1].g)).slice(0,10);
   const html=list.length?list.map(([n,o],i)=>`<div class="rk"><span class="no">${['🥇','🥈','🥉'][i]||i+1}</span><span class="n">${n}${o.cpu?' <small style="color:#8a90a8">CPU</small>':''}</span><span class="w">${o.w}かち</span><span class="g">${o.g}かいちゅう<br>しょうりつ${Math.round(o.w/o.g*100)}%</span></div>`).join(''):'<p>まだ きろくが ありません。<br>あそぶと ここに のります!</p>';
-  const r=await modal(`<h2>ランキング</h2>${html}`,list.length?['とじる','リセット']:['とじる']);
+  const empty=`<div class="empty">${AVS.map(a=>avatarSVG(a,'happy')).join('')}</div><p class="lead">まだ きろくが ないよ</p><p>あそぶと、かった回数が ここに のるよ!</p>`;
+  const r=await modal(`<h2>ランキング</h2>${list.length?html:empty}`,list.length?['とじる','リセット']:['とじる']);
   if(r===1){const c=await modal('<h2>きろくを けす?</h2><p>ランキングが ぜんぶ きえます。</p>',['けす','やめる']);if(c===0){stats={};try{localStorage.removeItem('yakata-stats');}catch(e){}}}
 };
 $('#howBtn').onclick=()=>showRules();
@@ -366,17 +376,26 @@ function modal(html,btns=['OK']){
     $('#mbox').querySelectorAll('.btns button').forEach(b=>b.onclick=()=>{SFX.tap();$('#modal').hidden=true;res(+b.dataset.b);});
   });
 }
+// あそびかた: 1 ページに 1 つのことだけ。大きな字とカードの絵で、ページを送って読む (前は小さな字がびっしりで、子どもは読まなかった)
 function showRules(){
-  modal(`<h2>あそびかた</h2><div class="rules">
-  <p>ひとり4まいずつ カードをくばります。<b>「犯人」カードを持っている人が 犯人</b>です。でもカードは こうかんされたりするので、犯人はどんどん かわるかも…!</p>
-  <h3>すすめかた</h3>
-  <p>「第一発見者」を持っている人が さいしょに出して、つぎの人から じゅんばんに 1まいずつ カードを出します。出したカードの こうかが おきます。</p>
-  <h3>勝ち・負け</h3>
-  <p>・<b>探偵</b>か<b>いぬ</b>で 犯人を見つけたら、犯人となかま(たくらみ)の負け。ほかの人は みんな勝ち!<br>・犯人が さいごに<b>「犯人」カードを出せたら</b>、犯人となかまの勝ち。</p>
-  <h3>カード</h3>
-  ${Object.keys(CARDS).map(t=>`<div class="crow">${cardHTML({type:t})}<div class="t"><b>${CARDS[t].n}</b>(${DECK_COUNTS[t]}まい)<br>${CARDS[t].t}</div></div>`).join('')}
-  <p style="font-size:12px;color:#8a90a8">3にん:12まい・4にん:16まいを つかいます。犯人・第一発見者・探偵・アリバイ(4にんは たくらみも)は かならず入ります。</p>
-  </div>`,['とじる']);
+  const pages=[
+    ['どんな ゲーム?',`<div class="rc">${cardHTML({type:'hannin'})}</div><p class="lead"><b>「犯人」カード</b>を 持っている人が 犯人!</p><p>でも カードは こうかんされるので、犯人は どんどん かわるかも…!</p>`],
+    ['すすめかた',`<div class="rc">${cardHTML({type:'hakken'})}</div><p class="lead"><b>「第一発見者」</b>を 持っている人から スタート</p><p>じゅんばんに 1まいずつ カードを出すと、そのカードの こうかが おきるよ。</p>`],
+    ['かち・まけ',`<div class="rc">${cardHTML({type:'tantei'})}${cardHTML({type:'inu'})}</div><p class="lead"><b>探偵</b>か <b>いぬ</b>で 犯人を 見つけたら、みんなの かち!</p><p>犯人が さいごに <b>「犯人」カード</b>を 出せたら、犯人と なかまの かち!</p>`],
+    ['カードの いみ',Object.keys(CARDS).map(t=>`<div class="crow">${cardHTML({type:t})}<div class="t"><b>${CARDS[t].n}</b> <small>${DECK_COUNTS[t]}まい</small><br>${CARDS[t].t}</div></div>`).join('')+`<p class="foot">3にん: 12まい・4にん: 16まいを つかいます。</p>`]
+  ];
+  let k=0;
+  const draw=()=>{
+    $('#rpage').innerHTML=`<h3 class="pt">${pages[k][0]}</h3><div class="rules${k===pages.length-1?' list':''}">${pages[k][1]}</div>`;
+    $('#rdots').innerHTML=pages.map((_,i)=>`<i class="${i===k?'on':''}"></i>`).join('');
+    $('#rprev').disabled=k===0;$('#rnext').disabled=k===pages.length-1;
+    $('#rpage').scrollTop=0;
+  };
+  const p=modal(`<h2>あそびかた</h2><div id="rpage"></div><div class="rnav"><button id="rprev" aria-label="まえへ">◀</button><div id="rdots"></div><button id="rnext" aria-label="つぎへ">▶</button></div>`,['とじる']);
+  $('#rprev').onclick=()=>{if(k>0){k--;SFX.tap();draw();}};
+  $('#rnext').onclick=()=>{if(k<pages.length-1){k++;SFX.tap();draw();}};
+  draw();
+  return p;
 }
 
 /* ---- game UI ---- */
@@ -391,7 +410,7 @@ const UI={
     $('#players').innerHTML=G.players.map(P=>{
       const pick=ui.mode==='target'&&ui.cands.includes(P.idx),dim=ui.mode==='target'&&!pick;
       return `<div class="pl ${G.turn===P.idx?'turn':''} ${P.idx===G.viewer?'me':''} ${pick?'pick':''} ${dim?'dim':''}" data-p="${P.idx}" style="--pc:${AVC[P.av]||'#6f6f78'}">
-        ${P.idx===G.viewer?'<span class="you">あなた</span>':''}${P.acc?'<span class="tag">なかま</span>':''}
+        ${P.idx===G.viewer&&P.name!=='あなた'?'<span class="you">あなた</span>':''}${P.acc?'<span class="tag">なかま</span>':''}
         ${avatarSVG(P.av,P.mood)}<div class="nm">${P.name}</div><div class="cnt">${'<i></i>'.repeat(P.hand.length)}</div></div>`;}).join('');
     // 場のカード: 新しく出たときだけ「ぽん」と出す (render は何度も呼ばれるので、毎回は動かさない)
     if(ui.shown!==G.last||ui.shownBy!==G.lastBy){
@@ -408,7 +427,12 @@ const UI={
     const V=G.viewer!=null?G.players[G.viewer]:null;
     if(!V){$('#hand').innerHTML='<div class="hid">手札は かくしています</div>';}
     else if(!V.hand.length){$('#hand').innerHTML='<div class="hid">手札は もう ありません</div>';}
-    else $('#hand').innerHTML=V.hand.map((c,i)=>{
+    else{
+      // 手札の大きさは枚数で決める: 少ないときは大きく (112pt まで)、多いときは横幅に収める (はみ出すと端のカードが切れた)
+      const hw=$('#hand').clientWidth||406,n=V.hand.length;
+      $('#hand').style.setProperty('--cw',Math.min(112,Math.floor((hw-(n-1)*8)/n))+'px');
+    }
+    if(V&&V.hand.length)$('#hand').innerHTML=V.hand.map((c,i)=>{
       const ng=ui.mode==='play'&&!ui.legal.includes(i);
       return cardHTML(c,{cls:(ui.sel===i?'sel ':'')+(ng?'ng':''),data:`data-ci="${i}"`,fresh:true});}).join('');
     // info
@@ -419,13 +443,13 @@ const UI={
         // 出せないときは、説明の代わりに理由を出す (帯に収めるため。いちばん知りたいのは理由)
         $('#infoTxt').innerHTML=`<b>${CARDS[c.type].n}</b>　${ok?CARDS[c.type].t:`<span class="ng">※ ${whyNot(V,c)}</span>`}`;
         go.disabled=!ok;
-      }else{$('#infoTxt').innerHTML='<span class="hint">↑ カードを タップ</span>';go.disabled=true;}   // 案内は上の行にあるので、ここでは くり返さない
+      }else{$('#infoTxt').innerHTML='';go.disabled=true;}   // 案内は上の行にあるので、ここでは くり返さない
       go.textContent=ui.btn;go.hidden=false;
     }else if(ui.mode==='target'){
       $('#infoTxt').innerHTML=`<b>${CARDS[V.hand[ui.sel].type].n}</b><br>上の人を タップしてね`;go.hidden=true;
     }else{
       const T=G.turn>=0?G.players[G.turn]:null;
-      $('#infoTxt').innerHTML=ui.reading?'<span class="next">タップで つぎへ ▸</span>':T&&!G.over?(T.cpu?`${T.name} が かんがえ中…`:`${T.name} の番`):'';go.hidden=true;
+      $('#infoTxt').innerHTML=ui.reading?'<span class="next">タップで つぎへ ▸</span>':T&&!G.over?(T.cpu?`<span class="wait">${byHTML(T)} かんがえ中…</span>`:`${T.name} の番`):'';go.hidden=true;
     }
   },
   setPrompt(html){$('#prompt').innerHTML=html||'';},
@@ -467,26 +491,59 @@ const UI={
       UI.setPrompt(title);UI.render();
     });
   },
-  async announce(who,html,card,mood){
+  // 場の上に重ねる知らせ。OK を押させず、時間がたつか 場をタップすると消える (OK だらけで流れが止まっていた)
+  async announce(who,html,card,mood,ms){
     const P=G.players[who];
-    await modal(`<div class="big-av">${avatarSVG(P.av,mood)}</div><h2>${P.name}</h2>${html}${card?`<div class="cards">${cardHTML(card,{cls:'played'})}</div>`:''}`,['OK']);
+    const b=document.createElement('div');b.className='banner';
+    b.innerHTML=`<div class="bx" style="--pc:${AVC[P.av]||'#6f6f78'}"><div class="bav">${avatarSVG(P.av,mood)}</div><div class="bt">${html}</div>${card?cardHTML(card,{cls:'mini'}):''}</div>`;
+    $('#table').appendChild(b);
+    const bx=b.firstChild;
+    if(bx.animate)bx.animate([{transform:'scale(.7)',opacity:0},{transform:'scale(1.04)',opacity:1,offset:.7},{transform:'scale(1)'}],{duration:300,easing:'ease-out'});
+    await UI.readPause(ms||Math.max(1600,pace().read));
+    b.remove();
+  },
+  // その人のいる所 (手札を見ている人なら手札、ほかは上のタイル) の真ん中
+  spot(i){
+    const el=i===G.viewer&&UI.humans()===1?$('#hand'):document.querySelector(`#players .pl[data-p="${i}"]`);
+    const r=(el||$('#table')).getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2};
+  },
+  tableSpot(){const r=$('#played').getBoundingClientRect(),t=$('#table').getBoundingClientRect();return {x:t.left+t.width/2,y:r.height>60?r.top+r.height*.4:t.top+t.height*.38};},
+  // カードを ある所から ある所へ飛ばす (位置は left/top、動きは transform だけ。落とし穴の表)
+  fly(from,to,html,ms=560){
+    const f=document.createElement('div');f.className='fly';f.innerHTML=html;
+    f.style.left=from.x+'px';f.style.top=from.y+'px';document.body.appendChild(f);
+    const dx=to.x-from.x,dy=to.y-from.y;
+    if(f.animate)f.animate([
+      {transform:'translate(-50%,-50%) scale(.6) rotate(-10deg)',opacity:.4},
+      {transform:`translate(calc(-50% + ${dx/2}px),calc(-50% + ${dy/2-36}px)) scale(1.05) rotate(5deg)`,opacity:1,offset:.5},
+      {transform:`translate(calc(-50% + ${dx}px),calc(-50% + ${dy}px)) scale(.7) rotate(0)`,opacity:1}],{duration:ms,easing:'cubic-bezier(.45,0,.25,1)',fill:'forwards'});
+    UI.flights=(UI.flights||0)+1;
+    return new Promise(r=>setTimeout(()=>{f.remove();r();},ms));
+  },
+  // 出したカードが、出した人の所から場へ飛んでいく
+  flyPlay(i,c,fromEl){
+    let from=UI.spot(i);
+    if(fromEl){const r=fromEl.getBoundingClientRect();from={x:r.left+r.width/2,y:r.top+r.height/2};}
+    return UI.fly(from,UI.tableSpot(),cardHTML(c,{cls:'flyc'}),460);
+  },
+  // カードが人から人へうつる。自分が出す・もらうカードは表、ほかの人どうしは裏で飛ぶ
+  flyTransfers(trs){
+    const me=UI.humans()===1?G.players.find(P=>!P.cpu).idx:null;
+    return Promise.all(trs.map((t,k)=>UI.wait(k*110).then(()=>UI.fly(UI.spot(t.from),UI.spot(t.to),
+      me!=null&&(t.from===me||t.to===me)?cardHTML(t.card,{cls:'flyc'}):'<div class="card back flyc"></div>',680))));
   },
   async privateMsg(i,html,cards){
     SFX.secret();
     await modal(`${html}${cards?`<div class="cards">${cards.map(c=>cardHTML(c,{cls:'mini'})).join('')}</div>`:''}<p style="font-size:12px;color:#8a90a8">ほかの人には ないしょ!</p>`,['おぼえた']);
   },
+  // カードの行き来は、飛んでいく動きで見せる。自分が犯人になった / 手ばなしたときだけ知らせを重ねる
   async moveNotice(trs){
+    await UI.flyTransfers(trs);
+    UI.render();
     if(UI.humans()!==1)return;
-    const h=G.viewer;const out=trs.find(t=>t.from===h),inn=trs.find(t=>t.to===h);
-    if(!out&&!inn)return;
-    let html='<h2>カードが うごいた!</h2>';
-    html+=`<div class="cards">`;
-    if(out)html+=`<div><p style="margin:0 0 4px;font-size:13px">${G.players[out.to].name} へ</p>${cardHTML(out.card,{cls:'mini'})}</div>`;
-    if(inn)html+=`<div><p style="margin:0 0 4px;font-size:13px">${G.players[inn.from].name} から</p>${cardHTML(inn.card,{cls:'mini'})}</div>`;
-    html+=`</div>`;
-    if(inn&&inn.card.type==='hannin')html=`<div class="big-av">${avatarSVG(G.players[h].av,'shock')}</div>`+html+'<p><b style="color:#ff9b8a">あなたが 犯人に なった…!</b></p>';
-    if(out&&out.card.type==='hannin')html+='<p>犯人カードを手ばなした! もう犯人じゃない。</p>';
-    await modal(html,['OK']);
+    const h=G.players.find(P=>!P.cpu).idx;const out=trs.find(t=>t.from===h),inn=trs.find(t=>t.to===h);
+    if(inn&&inn.card.type==='hannin'){UI.sfx('hit');await UI.announce(h,'<p class="lead">あなたが 犯人に なった…!</p>',inn.card,'shock');}
+    else if(out&&out.card.type==='hannin')await UI.announce(h,'<p class="lead">犯人カードを 手ばなした!</p><p>もう 犯人じゃない。</p>',out.card,'happy');
   },
   showResult(){
     const R=G.result,C=G.players[R.crimIdx],A=G.players[R.actor];
@@ -501,7 +558,7 @@ const UI={
       const w=R.winners.includes(P.idx);
       const role=P.idx===R.crimIdx?'犯人':(P.acc?'なかま':'');
       return `<div class="res ${w?'win':''}">${avatarSVG(P.av,P.mood)}<div class="who"><b>${P.name}</b>${role?` <span style="font-size:11px;color:#ff9b8a">${role}</span>`:''}
-        <div class="mh">${P.hand.map(c=>`<span style="--c:${CARDS[c.type].c}">${CARDS[c.type].n}</span>`).join('')||'<span style="--c:#999">手札なし</span>'}</div></div><div class="st">${w?'WIN':'LOSE'}</div></div>`;
+        <div class="mh">${P.hand.map(c=>`<span style="--c:${CARDS[c.type].c}">${CARDS[c.type].n}</span>`).join('')||'<span style="--c:#999">手札なし</span>'}</div></div><div class="st">${w?'かち':'まけ'}</div></div>`;
     }).join('');
     G.viewer=vw;UI.render();recordStats();
     modal(head+rows,['もういちど','タイトルへ']).then(b=>{

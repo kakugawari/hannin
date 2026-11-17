@@ -1,6 +1,6 @@
 {
-  "name": "はんにんダンス 〜犯人はおどる〜",
-  "short_name": "はんにんダンス",
+  "name": "犯人はおどる",
+  "short_name": "犯人はおどる",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

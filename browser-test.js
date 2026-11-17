@@ -205,12 +205,99 @@ async function run() {
         filter: getComputedStyle(document.querySelector('#title .tbg img')).filter,
         layer: getComputedStyle(document.querySelector('#title .tbg'), '::after').pointerEvents
       }));
-      ok(/hue-rotate/.test(tone.filter) && /saturate\(0\.78\)/.test(tone.filter), `タイトルに夜の青の色味がかかっている (${tone.filter})`);
+      // 色味は夜の青に寄せつつ、くすませすぎない (前の saturate .78 は月がにごった。使う人に「弱めて」と言われた)
+      const sat = +((tone.filter.match(/saturate\(([\d.]+)\)/) || [])[1] || 1);
+      ok(/hue-rotate/.test(tone.filter) && sat >= 0.88, `タイトルの色味が夜の青で、くすませすぎない (${tone.filter})`);
       // 紙のざらつきの層は絵の上に重なる。タップは下のボタンへ通す (落とし穴の表「上に重ねた層が全面をふさぐ」)
       await pg.locator('#hsStart').click();
       ok(tone.layer === 'none' && await pg.evaluate(() => !document.querySelector('#setup').hidden),
         '重ねた層があっても「はじめる」が押せる');
       await pg.close();
+    }
+
+    section('有料アプリの見直し (タイトル・知らせ・手札・画面)');
+    {
+      const pg = await browser.newPage({ viewport: { width: 430, height: 932 }, hasTouch: true });
+      await pg.goto(URL, { waitUntil: 'load' });
+      await pg.waitForTimeout(600);
+      // タイトル: 動いている (月・星・音符・はじめるの光)。動きの層はタップを通す
+      const t = await pg.evaluate(() => ({
+        anim: (document.querySelector('#title .tfx')?.getAnimations({ subtree: true }).length || 0) + document.querySelector('#hsStart').getAnimations({ subtree: true }).length,
+        through: document.querySelector('#title .tfx') ? getComputedStyle(document.querySelector('#title .tfx')).pointerEvents : 'なし',
+        rank: getComputedStyle(document.querySelector('#rankBtn')).backgroundImage,
+        rankWrap: (() => { const b = document.querySelector('#rankBtn'); return b.scrollHeight > b.clientHeight + 1 || b.getBoundingClientRect().height > 60; })()
+      }));
+      ok(t.anim >= 8 && t.through === 'none', `タイトルが動いている (動き ${t.anim} 個)。動きの層はタップを通す`);
+      ok(/gradient/.test(t.rank) && !t.rankWrap, 'ランキングが、ほかの 2 つと同じ形のボタンで、字が 1 行に収まる');
+      // あそびかた: ページを送って読む。字は大きく
+      await pg.locator('#howBtn').tap();
+      const p1 = await pg.evaluate(() => ({ t: document.querySelector('#rpage .pt')?.textContent || 'なし', f: parseFloat(getComputedStyle(document.querySelector('#modal .rules p')).fontSize) }));
+      await pg.locator('#rnext').tap({ timeout: 1500 }).catch(() => {});
+      const p2 = await pg.evaluate(() => document.querySelector('#rpage .pt')?.textContent || 'なし');
+      await pg.locator('#modal .btns button').last().tap();
+      ok(p1.t !== 'なし' && p1.t !== p2 && p1.f >= 16, `あそびかたは ページ送りで、字が大きい (${p1.t} → ${p2} / ${p1.f}px)`);
+      // せってい: 今の状態が見える切りかえ。押すと切りかわって覚える
+      await pg.locator('#setBtn').tap();
+      await pg.locator('.srow .seg[data-k="speed"] button[data-v="fast"]').tap({ timeout: 1500 }).catch(() => {});
+      const sp = await pg.evaluate(() => ({ on: document.querySelector('.srow .seg[data-k="speed"] button.on')?.textContent || 'なし', saved: JSON.parse(localStorage.getItem('yakata-settings') || '{}').speed }));
+      ok(sp.on === 'はやい' && sp.saved === 'fast', `せっていは 今の状態が見え、押すと切りかわる (${sp.on} / 保存 ${sp.saved})`);
+      await pg.locator('.srow .seg[data-k="speed"] button[data-v="normal"]').tap({ timeout: 1500 }).catch(() => {});
+      await pg.locator('#modal .btns button').last().tap();
+      // ランキング: 記録が無いときも、キャラと案内が出る
+      await pg.locator('#rankBtn').tap();
+      ok(await pg.evaluate(() => document.querySelectorAll('#modal .empty .av').length === 4), 'ランキングは 記録が無くても キャラと案内が出る');
+      await pg.locator('#modal .btns button').first().tap();
+      await pg.close();
+    }
+    {
+      // 配り方18 で 1 ゲーム遊ぶ。OK を押させる知らせは、ないしょの手札 (目撃者) と 結果の 2 つだけ (前は 8 回)
+      const ctx = await browser.newContext({ viewport: { width: 430, height: 932 }, hasTouch: true, isMobile: true });
+      const pg = await ctx.newPage();
+      pg.on('pageerror', (e) => errors.push('見直し: ' + e.message));
+      await pg.addInitScript(() => {
+        let a = 18;
+        Math.random = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        window.__modals = 0;
+        new MutationObserver(() => { const m = document.querySelector('#modal'); if (m && !m.hidden && !m.__open) { m.__open = true; window.__modals++; } if (m && m.hidden) m.__open = false; })
+          .observe(document, { subtree: true, attributes: true, attributeFilter: ['hidden'] });
+      });
+      await pg.goto(URL, { waitUntil: 'load' });
+      await pg.locator('#hsStart').tap();
+      await pg.locator('#start').tap();
+      // 上のタイル: 手札の枚数はカードの裏 (細い枠の四角は字の出ない豆腐に見えた)。名前が「あなた」なら「あなた」の札は重ねない
+      await pg.waitForTimeout(300);
+      const tile = await pg.evaluate(() => {
+        const i = document.querySelector('#players .pl .cnt i'), cs = getComputedStyle(i), r = i.getBoundingClientRect();
+        const hand = [...document.querySelectorAll('#hand .card')].map((c) => c.getBoundingClientRect());
+        return { w: r.width, h: r.height, bg: cs.backgroundImage, you: document.querySelectorAll('#players .you').length,
+          n: hand.length, hfit: hand.every((c) => c.left >= 0 && c.right <= 430) };
+      });
+      ok(tile.w >= 12 && tile.h >= 18 && /gradient/.test(tile.bg), `手札の枚数は 小さなカードの裏 (${Math.round(tile.w)}x${Math.round(tile.h)}pt)`);
+      ok(tile.you === 0, '名前が「あなた」のとき、「あなた」の札を重ねない');
+      ok(tile.n >= 4 && tile.hfit, `はじめの手札 ${tile.n} まいが 横にはみ出さない (カードを大きくしたら 4 まいで左端が切れた)`);
+      let fit = true, sizes = [];
+      for (let k = 0; k < 400; k++) {
+        const st = await pg.evaluate(() => ({ m: !document.querySelector('#modal').hidden, over: typeof G !== 'undefined' && G && G.over, pr: document.querySelector('#prompt').innerText,
+          picks: document.querySelectorAll('#players .pl.pick').length, go: !document.querySelector('#go').disabled }));
+        if (st.m) { if (st.over) break; await pg.locator('#modal button:visible').first().tap().catch(() => {}); continue; }
+        if (st.picks) { await pg.locator('#players .pl.pick').first().tap().catch(() => {}); continue; }
+        if (/出そう|わたす/.test(st.pr) && !st.go) {
+          // 手札は枚数によらず横にはみ出さない
+          const h = await pg.evaluate(() => [...document.querySelectorAll('#hand .card')].map((c) => c.getBoundingClientRect()));
+          sizes.push(h.length);
+          if (h.some((r) => r.left < 0 || r.right > 430)) fit = false;
+          await pg.locator('#hand .card').first().tap().catch(() => {});
+          await pg.locator('#go:not([disabled])').tap().catch(() => {});
+          continue;
+        }
+        await pg.waitForTimeout(250);
+      }
+      const res = await pg.evaluate(() => ({ modals: window.__modals, flights: UI.flights || 0, over: G && G.over, eng: /WIN|LOSE/.test(document.querySelector('#modal').innerText) }));
+      ok(res.over && res.modals <= 2, `1 ゲームで OK を押させる知らせは ${res.modals} 回 (ないしょの手札と結果だけ。前は 8 回)`);
+      ok(res.flights >= 8, `カードが 飛んでいく動きで見せる (${res.flights} 回)`);
+      ok(fit, `手札が横にはみ出さない (${[...new Set(sizes)].join('・')} まいのとき)`);
+      ok(!res.eng, '結果に英語 (WIN / LOSE) を使わない');
+      await ctx.close();
     }
 
     section('場 (いちばんの見せ場)');
@@ -230,7 +317,7 @@ async function run() {
       await pg.goto(URL, { waitUntil: 'load' });
       await pg.locator('#hsStart').tap();
       await pg.locator('#start').tap();
-      await pg.locator('#modal button:visible').first().tap({ timeout: 4000 });
+      // 第一発見者の知らせは OK で止めない (場の上に重なり、時間がたつと消える)
       for (let i = 0; i < 80; i++) {     // 読む間はタップで進め、自分の番まで
         if (await pg.evaluate(() => /カードを1まい出そう/.test(document.querySelector('#prompt').textContent))) break;
         const okBtn = pg.locator('#modal button:visible');
@@ -355,7 +442,7 @@ async function run() {
         });
         await pg.locator('#hsStart').tap();
         await pg.locator('#start').tap();
-        await pg.locator('#modal button:visible').first().tap({ timeout: 4000 });   // 第一発見者の知らせ
+        // 第一発見者の知らせは OK で止めない (場の上に重なり、時間がたつと消える)
         await pg.waitForFunction(() => window.__plays.some((e) => /^きつね/.test(e.by)), null, { timeout: 8000 });
         if (tapAfter) {
           await pg.waitForTimeout(tapAfter);
