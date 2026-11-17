@@ -300,10 +300,44 @@ async function run() {
       await ctx.close();
     }
 
+    {
+      // 実機の高さ (安全域 上59・下34 を差し込む) で: 「かんがえ中」の顔が帯からはみ出さない / 場のカード・出した人・説明が重ならない
+      // (顔の大きさを決め忘れて帯の下に大きな顔が見切れた。手札を大きくしたら場が低くなり、名札と説明が重なった)
+      const pg = await browser.newPage({ viewport: { width: 430, height: 932 }, hasTouch: true });
+      await pg.addInitScript(() => { let a = 18; Math.random = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; });
+      await pg.goto(URL, { waitUntil: 'load' });
+      await pg.addStyleTag({ content: '#game{padding-top:67px!important;padding-bottom:44px!important}' });
+      await pg.locator('#hsStart').tap();
+      await pg.locator('#start').tap();
+      await pg.waitForFunction(() => /かんがえ中/.test(document.querySelector('#infoTxt').innerText), null, { timeout: 15000 });
+      const think = await pg.evaluate(() => {
+        const info = document.querySelector('#info').getBoundingClientRect();
+        return [...document.querySelectorAll('#info img')].map((i) => i.getBoundingClientRect()).map((r) => ({ in: r.top >= info.top - 1 && r.bottom <= info.bottom + 1, h: Math.round(r.height) }));
+      });
+      ok(think.length >= 1 && think.every((r) => r.in), `「かんがえ中」の顔が 帯の中に収まる (顔の高さ ${think.map((r) => r.h).join(',')}pt)`);
+      await pg.waitForFunction(() => /タップで/.test(document.querySelector('#infoTxt').innerText) && document.querySelectorAll('#log div').length, null, { timeout: 15000 });
+      const tb = await pg.evaluate(() => {
+        const r = (q) => document.querySelector(q).getBoundingClientRect();
+        const t = r('#table'), c = r('#played .card'), by = r('#played .by'), log = r('#log div');
+        return { order: c.bottom <= by.top + 1 && by.bottom <= log.top + 1, inside: c.top >= t.top && r('#log').bottom <= t.bottom + 1, w: Math.round(c.width) };
+      });
+      ok(tb.order && tb.inside, `実機の高さで、場のカード → 出した人 → 説明 が重ならず、場の中に収まる (カード幅 ${tb.w}pt)`);
+      // 場がもう 34pt 低くても重ならない (前は下の安全域が二重で、実機の場はこの高さだった。そこで名札と説明が重なった)
+      await pg.setViewportSize({ width: 430, height: 898 });
+      await pg.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
+      const low = await pg.evaluate(() => {
+        const r = (q) => document.querySelector(q).getBoundingClientRect();
+        const t = r('#table'), c = r('#played .card'), by = r('#played .by'), log = r('#log div');
+        return { ok: c.bottom <= by.top + 1 && by.bottom <= log.top + 1 && c.top >= t.top && r('#log').bottom <= t.bottom + 1, w: Math.round(c.width), h: Math.round(t.height) };
+      });
+      ok(low.ok, `場が低くても (${low.h}pt) カードが小さくなって 重ならない (カード幅 ${low.w}pt)`);
+      await pg.close();
+    }
+
     section('場 (いちばんの見せ場)');
     {
-      // 配り方18: あなたが第一発見者 → CPU 3 人が出したあと、あなたの番
-      const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+      // 配り方18: あなたが第一発見者 → CPU 3 人が出したあと、あなたの番。対象の iPhone 16 Plus の大きさで見る (決めごと)
+      const ctx = await browser.newContext({ viewport: { width: 430, height: 932 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
       const pg = await ctx.newPage();
       pg.on('pageerror', (e) => errors.push('場: ' + e.message));
       await pg.addInitScript(() => {
