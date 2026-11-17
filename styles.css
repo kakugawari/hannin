@@ -17,13 +17,40 @@ img.av{border-radius:50%;object-fit:cover;-webkit-user-drag:none;pointer-events:
 .tbg{position:relative;width:min(100vw,100dvh*.4615);aspect-ratio:852/1846;max-height:100dvh}
 .tbg img{width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none;
   /* 色味 B「夜の青」: 紫のギラつきを抑えて、深い夜の青に寄せる (絵そのものは描き直さない) */
-  filter:hue-rotate(-14deg) saturate(.78) contrast(1.06) brightness(.94)}
+  filter:hue-rotate(-6deg) saturate(.92) contrast(1.03)}   /* くすませ加工は弱める (前は -14deg / .78 / 1.06 / .94。月がにごったベージュになっていた) */
 /* 紙のざらつき + まわりの影。動かないので CSS で敷く。上に重ねるがタップは通す */
 .tbg::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .4 0 0 0 .55 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(110% 85% at 50% 35%,transparent 50%,#05081a99 100%)}
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .4 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
+    radial-gradient(110% 85% at 50% 35%,transparent 50%,#05081a55 100%)}
 .hs{position:absolute;background:transparent;transition:background .1s}
-.hs:active{background:#ffffff40}
+.hs:active{background:#0000002e}
+/* 動き。月がゆっくり光り、星がまたたき、音符が浮かんで消える */
+.tfx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.tfx i{position:absolute;display:block}
+.tfx .moon{left:54.7%;top:13.4%;width:62%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+  background:radial-gradient(circle,#fff6d655 0%,#ffe9a833 38%,transparent 66%);mix-blend-mode:screen;animation:moon 5s ease-in-out infinite}
+@keyframes moon{50%{opacity:.35;transform:translate(-50%,-50%) scale(.94)}}
+.tfx .star{width:16px;height:16px;margin:-8px 0 0 -8px;background:#fff6c8;
+  clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);filter:drop-shadow(0 0 4px #fff3a8);
+  opacity:0;animation:twinkle 3.2s ease-in-out infinite}
+.tfx .star.s{width:10px;height:10px;margin:-5px 0 0 -5px}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.3) rotate(0)}45%{opacity:1;transform:scale(1) rotate(20deg)}70%{opacity:.2;transform:scale(.6) rotate(35deg)}}
+.tfx .note{font-style:normal;font-size:26px;font-weight:900;color:#ff8fd6;text-shadow:0 0 8px #ff8fd699;opacity:0;animation:note 6.5s ease-out infinite}
+.tfx .note.g{color:#ffd86a;text-shadow:0 0 8px #ffd86a99}
+@keyframes note{0%{opacity:0;transform:translate(0,10px) rotate(-10deg)}15%{opacity:.95}60%{opacity:.8}100%{opacity:0;transform:translate(18px,-70px) rotate(14deg)}}
+/* はじめる: 光が横切って、押せる物だと分かるように */
+#hsStart{overflow:hidden}
+#hsStart .shine{position:absolute;top:0;bottom:0;left:-40%;width:28%;pointer-events:none;
+  background:linear-gradient(100deg,transparent,#ffffff8c 50%,transparent);animation:shine 3.4s ease-in-out infinite 1s}
+@keyframes shine{0%{left:-40%}35%,100%{left:120%}}
+#hsStart:active{transform:scale(.97)}
+/* ランキング: あそびかた・せってい と同じ形のボタン */
+.hs.pill{display:flex;align-items:center;justify-content:center;border-radius:999px;color:#fff;font-weight:900;font-size:15px;white-space:nowrap;letter-spacing:-.02em;
+  background:linear-gradient(#7458e0,#4c33b4 60%,#3f2a9c);box-shadow:inset 0 2px 0 #ffffff40,0 0 0 3px #1b1246,0 4px 8px #0008;text-shadow:0 1.5px 0 #1b1246}
+/* 王冠はボタンの上に乗せる (絵に描いてある王冠の先も隠れる) */
+.hs.pill svg{position:absolute;left:50%;top:-13px;width:26px;height:19px;margin-left:-13px;filter:drop-shadow(0 1px 0 #1b1246) drop-shadow(0 0 3px #0008)}
+.hs.pill:active{transform:translateY(2px)}
+@media (prefers-reduced-motion:reduce){.tfx,#hsStart .shine{display:none}}
 .rk{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:#ffffff0c;margin:6px 0;text-align:left}
 .rk .no{width:26px;font-weight:900;color:var(--gold2);text-align:center}
 .rk .n{flex:1;font-weight:700}
@@ -53,10 +80,11 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 
 /* ---------- game ---------- */
 #game{gap:8px}
-#bar{display:flex;align-items:center;justify-content:space-between;height:30px}
-#bar .t{font-size:14px;color:var(--gold2);letter-spacing:.15em;text-align:center;line-height:1.1}
-#bar .t small{display:block;font-size:9px;letter-spacing:.1em;color:var(--muted)}
-#bar button{background:#ffffff12;color:#dfe3f2;border-radius:10px;padding:5px 12px;font-size:13px}
+#bar{display:flex;align-items:center;justify-content:space-between;height:36px}
+#bar .t{font-size:18px;font-weight:900;color:var(--gold2);letter-spacing:.12em;text-align:center;line-height:1.1;text-shadow:0 2px 0 #0008}
+#bar .t small{display:block;font-size:10px;font-weight:700;letter-spacing:.2em;color:#c9cbe0;margin-top:2px}
+#bar button{height:34px;background:#ffffff1f;color:#fff;border:1px solid #ffffff2e;border-radius:999px;padding:0 16px;font-size:14px;font-weight:800}
+#bar button:active{background:#ffffff38}
 #players{display:grid;gap:6px;padding-top:14px;margin-bottom:8px}
 .pl{position:relative;background:#ffffff0c;border:1.5px solid #ffffff14;border-radius:14px;padding:6px 4px 5px;text-align:center;transition:.2s}
 /* B「名札」: 顔を大きくしてキャラの色の輪で囲み、下にキャラの色の名札 (白い字)。地は暗いまま (カードと見分ける) */
@@ -65,8 +93,13 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
   box-shadow:0 0 0 2.5px #151a2e,0 0 0 5.5px var(--pc,#6f6f78),0 6px 12px #000a}
 .pl .nm{display:inline-block;max-width:94%;margin-top:7px;background:var(--pc,#6f6f78);color:#fff;border-radius:999px;padding:1px 10px;
   font-size:12px;font-weight:800;text-shadow:0 1px 0 #0005;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pl .cnt{display:flex;justify-content:center;gap:2px;margin-top:3px;height:14px}
-.pl .cnt i{width:9px;height:13px;border-radius:2px;background:linear-gradient(135deg,#3a4677,#26305a);border:1px solid var(--gold)}
+/* 手札の枚数は、小さなカードの裏を扇に重ねて見せる (細い枠の四角は、字が出ない「豆腐」に見えた) */
+.pl .cnt{display:flex;justify-content:center;margin-top:5px;height:21px;padding-left:5px}
+.pl .cnt i{position:relative;width:14px;height:20px;margin-left:-5px;border-radius:3px;
+  background:radial-gradient(circle at 50% 45%,#ffe08a 0 2.2px,transparent 2.8px),linear-gradient(160deg,#4a58b8,#262f6a);
+  border:1.5px solid var(--gold2);box-shadow:1px 1px 2px #000a}
+.pl .cnt i:nth-child(odd){transform:rotate(-6deg)}
+.pl .cnt i:nth-child(even){transform:rotate(5deg) translateY(-1px)}
 .pl.turn{border-color:var(--gold);background:#d8b45a22;box-shadow:0 0 14px #d8b45a55}
 .pl.me .nm{color:#fff;box-shadow:0 0 0 1.5px var(--gold2)}
 .pl .tag{position:absolute;bottom:-9px;right:-4px;z-index:1;white-space:nowrap;background:#6b3fa0;color:#fff;font-size:10px;font-weight:800;border-radius:8px;padding:1px 6px;border:1px solid #c9a8ff}
@@ -110,17 +143,21 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 /* 下の並び: 案内 (手札のすぐ上) → 手札 → 決定の帯。HTML の順は変えず order で並べる */
 #prompt{order:1;min-height:24px;text-align:center;font-size:16px;font-weight:800;color:var(--gold2);margin-bottom:-6px}
 #prompt button{margin-left:8px;background:#ffffff1c;color:#fff;border-radius:9px;padding:3px 12px;font-size:13px}
-#info{order:3;height:76px;background:#ffffff0d;border-radius:16px;padding:8px 10px 8px 14px;display:flex;align-items:center;gap:10px;
+/* 帯は、カードをえらんだときだけ地を敷く (何も無いときの暗い箱は、空の入力欄に見えた) */
+#info{order:3;height:76px;background:transparent;border-radius:16px;transition:background .15s;padding:8px 10px 8px 14px;display:flex;align-items:center;gap:10px;
   margin-bottom:env(safe-area-inset-bottom)}
 #info .txt{flex:1;font-size:12.5px;line-height:1.4;overflow:hidden;max-height:100%}
 #info .txt .hint{display:block;text-align:center;color:var(--muted);font-size:13px;letter-spacing:.04em}
 #info .txt b{font-size:14px;color:var(--gold2)}
 #info .txt .next{color:var(--muted);font-size:12px;letter-spacing:.06em}
 #info .txt .ng{color:#ff9b8a;font-size:12px}
+#info:has(#go:not(:disabled):not([hidden])){background:#ffffff12;box-shadow:inset 0 0 0 1px #ffffff1a}
+#info .txt .wait{display:flex;align-items:center;justify-content:center;gap:8px;color:#c9cbe0;font-size:14px;font-weight:700}
 #go{flex:none;min-width:108px;height:48px;padding:0 18px;border-radius:14px;font-weight:900;font-size:18px;background:linear-gradient(#f1d78c,#c99d3c);color:#2b1d08;box-shadow:0 3px 0 #7a5a1c}
 /* 押せないボタンは灰色で残さず、出さない (壊れて見えるため)。カードをえらぶと金色で出る */
 #go:disabled{display:none}
-#hand{order:2;display:flex;justify-content:center;gap:2vw;min-height:calc(var(--cw)*1.45 + 14px);align-items:flex-end;padding-top:12px}
+/* 手札はいちばん触る物なので大きく (取り込み時 90pt → 112pt) */
+#hand{--cw:112px;order:2;display:flex;justify-content:center;gap:8px;min-height:calc(var(--cw)*1.45 + 14px);align-items:flex-end;padding-top:12px}
 #hand .hid{color:var(--muted);font-size:14px;align-self:center}
 
 /* ---------- card ---------- */
@@ -183,3 +220,65 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 .crow .card{--w:52px}
 .crow div.t{flex:1;font-size:13px;line-height:1.5}
 .crow div.t b{color:var(--gold2)}
+
+/* ---------- 場の上に重ねる知らせ (OK を押させない) ---------- */
+.banner{position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding:16px;background:#0a0e2266;pointer-events:none}
+.banner .bx{display:flex;flex-direction:column;align-items:center;gap:6px;max-width:92%;padding:16px 18px 14px;border-radius:22px;text-align:center;
+  background:linear-gradient(#2c3566f2,#1b2250f2);box-shadow:0 0 0 2px var(--pc),0 0 0 5px #0006,0 14px 30px #000a}
+.banner .bav{width:78px;height:78px;margin-top:-50px}
+.banner .bav .av{width:100%;height:100%;display:block;box-shadow:0 0 0 3px #151a2e,0 0 0 6px var(--pc),0 6px 14px #000a}
+.banner .bt p{margin:4px 0;font-size:16px;line-height:1.5;font-weight:700;color:#e8e2ff}
+.banner .bt p.lead{font-size:21px;font-weight:900;color:#fff}
+.banner .bt b{color:var(--gold2)}
+.banner .speech{font-size:19px;margin:4px 0}
+.banner .card{margin-top:2px}
+/* 飛んでいくカード */
+.fly{position:fixed;z-index:30;pointer-events:none;will-change:transform}
+.flyc{--w:84px}
+.card.back.flyc{width:84px;height:122px}
+@media (prefers-reduced-motion:reduce){.fly{display:none}}
+
+/* ---------- だれが あそぶ? ---------- */
+.box.setup h2{font-size:24px;margin-bottom:12px}
+.nseg{margin:0 auto 14px;max-width:260px}
+.nseg button{font-size:18px;padding:10px 0}
+#seats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.seat2{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 8px 10px;border-radius:18px;background:#ffffff0d;
+  box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--pc) 70%,transparent)}
+.seat2 .av{width:62px;height:62px;box-shadow:0 0 0 3px #151a2e,0 0 0 6px var(--pc)}
+.seat2 input{width:100%;text-align:center;background:#0005;border:1px solid #ffffff26;border-radius:10px;color:#fff;font:inherit;font-size:16px;font-weight:800;padding:7px 6px;-webkit-user-select:text;user-select:text}
+.seat2 .seg{width:100%}
+.seat2 .seg button{font-size:15px;padding:8px 0}
+.seat2 .seg button.on{background:var(--pc);color:#fff}
+.box.setup .note{font-size:13px;margin-top:12px}
+/* ---------- せってい ---------- */
+.srow{display:flex;flex-direction:column;gap:8px;text-align:left;padding:12px 4px;border-top:1px solid #ffffff14}
+.srow:first-of-type{border-top:none}
+.srow .sl{font-size:17px;font-weight:900;color:#fff}
+.srow .sl small{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-top:3px;line-height:1.5}
+.srow .seg button{font-size:16px;padding:10px 0}
+/* ---------- ランキング (まだ記録が無いとき) ---------- */
+.box .empty{display:flex;justify-content:center;gap:6px;margin:8px 0 4px}
+.box .empty .av{width:52px;height:52px;animation:hop 1.6s ease-in-out infinite}
+.box .empty .av:nth-child(2){animation-delay:.2s}.box .empty .av:nth-child(3){animation-delay:.4s}.box .empty .av:nth-child(4){animation-delay:.6s}
+@keyframes hop{50%{transform:translateY(-6px)}}
+.box p.lead{font-size:19px;font-weight:900;color:#fff}
+/* ---------- あそびかた ---------- */
+#rpage{min-height:330px;max-height:56vh;overflow-y:auto}
+#rpage .pt{margin:2px 0 10px;font-size:20px;color:var(--gold2)}
+#rpage .rules{font-size:16px;text-align:center}
+#rpage .rules p{font-size:16px}
+#rpage .rules p.lead{font-size:19px;line-height:1.6}
+#rpage .rules b{color:var(--gold2)}
+#rpage .rc{display:flex;justify-content:center;gap:10px;margin:4px 0 8px}
+#rpage .rc .card{--w:96px}
+#rpage .rules.list{text-align:left}
+#rpage .rules.list .crow div.t{font-size:14px}
+#rpage .rules.list .crow div.t small{color:var(--muted)}
+#rpage .foot{font-size:12px;color:var(--muted)}
+.rnav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:12px}
+.rnav button{width:52px;height:44px;border-radius:12px;background:#ffffff1c;color:#fff;font-size:18px}
+.rnav button:disabled{opacity:.25}
+#rdots{display:flex;gap:7px}
+#rdots i{width:9px;height:9px;border-radius:50%;background:#ffffff33}
+#rdots i.on{background:var(--gold2)}
