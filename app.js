@@ -406,6 +406,17 @@ const UI={
   humans:()=>G.players.filter(P=>!P.cpu).length,
   render(){
     if(!G)return;
+    // 自分がえらぶ番は、場に大きな札を出す (手札の上の 1 行だけだと気づかなかった)
+    const choosing=ui.mode==='give';
+    $('#game').classList.toggle('choosing',choosing);
+    const co=$('#callout');
+    if(choosing){
+      const t=ui.title||'',k=t.indexOf('!');
+      const tag=k>=0?t.slice(0,k+1):'あなたが えらぶ番!',body=(k>=0?t.slice(k+1):t).trim().replace(/えらんでね$/,'<br>1まい えらんでね');
+      const html=`<span class="tag">${tag}</span><div class="ct">${body}</div><div class="arw">▼</div>`;
+      if(co.dataset.k!==t){co.innerHTML=html;co.dataset.k=t;}
+      co.hidden=false;
+    }else if(!co.hidden){co.hidden=true;co.dataset.k='';}
     const n=G.n;$('#players').style.gridTemplateColumns=`repeat(${n},1fr)`;
     $('#players').innerHTML=G.players.map(P=>{
       const pick=ui.mode==='target'&&ui.cands.includes(P.idx),dim=ui.mode==='target'&&!pick;
@@ -487,8 +498,8 @@ const UI={
   },
   pickGive(i,title){
     return new Promise(res=>{
-      ui.mode='give';ui.sel=-1;ui.legal=G.players[i].hand.map((c,k)=>k);ui.btn='わたす';ui.resolve=res;
-      UI.setPrompt(title);UI.render();
+      ui.mode='give';ui.sel=-1;ui.legal=G.players[i].hand.map((c,k)=>k);ui.btn='わたす';ui.resolve=res;ui.title=title;
+      UI.setPrompt(title);UI.render();SFX.secret();
     });
   },
   // 場の上に重ねる知らせ。OK を押させず、時間がたつか 場をタップすると消える (OK だらけで流れが止まっていた)

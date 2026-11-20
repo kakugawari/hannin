@@ -13,21 +13,16 @@ img.av{border-radius:50%;object-fit:cover;-webkit-user-drag:none;pointer-events:
 [hidden]{display:none!important}
 
 /* ---------- title ---------- */
-#title{padding:0;align-items:center;justify-content:center;background:#241a5e}
-.tbg{position:relative;width:min(100vw,100dvh*.4615);aspect-ratio:852/1846;max-height:100dvh}
-.tbg img{width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none;
-  /* 色味 B「夜の青」: 紫のギラつきを抑えて、深い夜の青に寄せる (絵そのものは描き直さない) */
-  filter:hue-rotate(-6deg) saturate(.92) contrast(1.03)}   /* くすませ加工は弱める (前は -14deg / .78 / 1.06 / .94。月がにごったベージュになっていた) */
-/* 紙のざらつき + まわりの影。動かないので CSS で敷く。上に重ねるがタップは通す */
-.tbg::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:multiply;
-  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .4 0 0 0 .22 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(110% 85% at 50% 35%,transparent 50%,#05081a55 100%)}
+#title{padding:0;align-items:center;justify-content:center;background:#143364}
+/* タイトルの絵は、使う人がくれた絵をそのまま出す (色を変える加工やざらつきは重ねない) */
+.tbg{position:relative;width:min(100vw,100dvh*.4607);aspect-ratio:851/1847;max-height:100dvh}
+.tbg img{width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none}
 .hs{position:absolute;background:transparent;transition:background .1s}
 .hs:active{background:#0000002e}
 /* 動き。月がゆっくり光り、星がまたたき、音符が浮かんで消える */
 .tfx{position:absolute;inset:0;pointer-events:none;overflow:hidden}
 .tfx i{position:absolute;display:block}
-.tfx .moon{left:54.7%;top:13.4%;width:62%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
+.tfx .moon{left:52.9%;top:12.5%;width:64%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;
   background:radial-gradient(circle,#fff6d655 0%,#ffe9a833 38%,transparent 66%);mix-blend-mode:screen;animation:moon 5s ease-in-out infinite}
 @keyframes moon{50%{opacity:.35;transform:translate(-50%,-50%) scale(.94)}}
 .tfx .star{width:16px;height:16px;margin:-8px 0 0 -8px;background:#fff6c8;
@@ -44,12 +39,6 @@ img.av{border-radius:50%;object-fit:cover;-webkit-user-drag:none;pointer-events:
   background:linear-gradient(100deg,transparent,#ffffff8c 50%,transparent);animation:shine 3.4s ease-in-out infinite 1s}
 @keyframes shine{0%{left:-40%}35%,100%{left:120%}}
 #hsStart:active{transform:scale(.97)}
-/* ランキング: あそびかた・せってい と同じ形のボタン */
-.hs.pill{display:flex;align-items:center;justify-content:center;border-radius:999px;color:#fff;font-weight:900;font-size:15px;white-space:nowrap;letter-spacing:-.02em;
-  background:linear-gradient(#7458e0,#4c33b4 60%,#3f2a9c);box-shadow:inset 0 2px 0 #ffffff40,0 0 0 3px #1b1246,0 4px 8px #0008;text-shadow:0 1.5px 0 #1b1246}
-/* 王冠はボタンの上に乗せる (絵に描いてある王冠の先も隠れる) */
-.hs.pill svg{position:absolute;left:50%;top:-13px;width:26px;height:19px;margin-left:-13px;filter:drop-shadow(0 1px 0 #1b1246) drop-shadow(0 0 3px #0008)}
-.hs.pill:active{transform:translateY(2px)}
 @media (prefers-reduced-motion:reduce){.tfx,#hsStart .shine{display:none}}
 .rk{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:#ffffff0c;margin:6px 0;text-align:left}
 .rk .no{width:26px;font-weight:900;color:var(--gold2);text-align:center}
@@ -288,3 +277,25 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 #rdots{display:flex;gap:7px}
 #rdots i{width:9px;height:9px;border-radius:50%;background:#ffffff33}
 #rdots i.on{background:var(--gold2)}
+
+/* 自分がえらぶ番 (情報操作・取り引きで わたすカード)。前は手札の上の 1 行 (16px) だけで、気づかなかった。
+   場の下に大きな札を出し、手札をゆらして「ここを押す」と分かるようにする */
+#callout{flex:none;position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:2px;max-width:92%;
+  padding:10px 18px 8px;border-radius:18px;text-align:center;pointer-events:none;
+  background:linear-gradient(#2b2470,#1d1850);box-shadow:0 0 0 3px #ffd36a,0 0 24px 6px #ffd36a66,0 8px 16px #0009;
+  animation:callIn .35s cubic-bezier(.2,1.5,.4,1),callGlow 1.6s ease-in-out .35s infinite}
+#callout .tag{font-size:14px;font-weight:900;color:#1b1246;background:#ffd36a;border-radius:999px;padding:2px 12px;margin-top:-22px;box-shadow:0 2px 0 #0006}
+#callout .ct{font-size:21px;font-weight:900;color:#fff;line-height:1.35;text-shadow:0 2px 0 #0008}
+#callout .ct b{color:var(--gold2)}
+#callout .arw{font-size:18px;color:#ffd36a;line-height:1;animation:callArw .8s ease-in-out infinite}
+@keyframes callIn{0%{transform:scale(.6);opacity:0}100%{transform:scale(1);opacity:1}}
+@keyframes callGlow{50%{box-shadow:0 0 0 3px #ffe9a8,0 0 34px 10px #ffd36a99,0 8px 16px #0009}}
+@keyframes callArw{50%{transform:translateY(5px)}}
+#game.choosing #log{display:none}
+#game.choosing #prompt{visibility:hidden}
+#game.choosing #hand .card:not(.sel){animation:pickMe 1.2s ease-in-out infinite}
+#game.choosing #hand .card:nth-child(2){animation-delay:.15s}
+#game.choosing #hand .card:nth-child(3){animation-delay:.3s}
+#game.choosing #hand .card:nth-child(4){animation-delay:.45s}
+@keyframes pickMe{50%{translate:0 -8px}}
+@media (prefers-reduced-motion:reduce){#callout,#callout .arw,#game.choosing #hand .card{animation:none}}

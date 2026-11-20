@@ -135,8 +135,10 @@ async function run() {
     //   2: 手札に「取り引き」(相手をタップしてえらぶ)
     //   16: ほかの人の「情報操作」で、自分も渡す札をえらぶ番がはさまる
     //   18: 自分が第一発見者 (表示は「あなた の番」と、すき間が入る)
+    let callSeen = 0;
     for (const seed of [2, 16, 18]) {
-      const ctx = await browser.newContext({ ...devices['iPhone 13'] });
+      // 対象の端末 (iPhone 16 Plus 430x932) で。下の安全域 (34pt) ぶん低くしても場の札が場に収まるかも見るため、高さは 898
+      const ctx = await browser.newContext({ viewport: { width: 430, height: 898 }, hasTouch: true, isMobile: true });
       const pg = await ctx.newPage();
       pg.on('pageerror', (e) => errors.push(`はんにん(${seed}): ` + e.message));
       await pg.addInitScript((sd) => {
@@ -154,13 +156,13 @@ async function run() {
       await pg.evaluate(() => {
         window.__seenLog = [];
         const box = document.querySelector('#log');
-        const grab = () => { for (const l of box.innerText.split('\n')) if (l.trim() && !window.__seenLog.includes(l.trim())) window.__seenLog.push(l.trim()); };
+        const grab = () => { for (const l of [...box.querySelectorAll('div')].map((d) => d.textContent)) if (l.trim() && !window.__seenLog.includes(l.trim())) window.__seenLog.push(l.trim()); };
         grab();
         new MutationObserver(grab).observe(box, { childList: true, subtree: true, characterData: true });
       });
       const state = () => pg.evaluate(() => ({
         info: document.querySelector('#infoTxt').textContent,
-        prompt: document.querySelector('#prompt').innerText,
+        prompt: document.querySelector('#prompt').textContent,
         picks: document.querySelectorAll('#players .pl.pick').length
       }));
       // 知らせ (OK)・渡す札・相手えらびを片づけながら、「カードを1まい出そう」の番まで進める
@@ -171,7 +173,15 @@ async function run() {
           const st = await state();
           if (st.picks) { await pg.locator('#players .pl.pick').first().tap().catch(() => {}); await pg.waitForTimeout(300); continue; }
           if (/わたすカード/.test(st.info + st.prompt)) {
-            await pg.locator('#hand .card').first().tap().catch(() => {});
+            // えらぶ番は、場に大きな札が出て、手札がゆれる (前は手札の上の 16px の 1 行だけで、気づかなかった)
+            if (!sawCall) sawCall = await pg.evaluate(() => {
+              const c = document.querySelector('#callout'), r = c.getBoundingClientRect(), t = document.querySelector('#table').getBoundingClientRect();
+              const ct = c.querySelector('.ct'), p = document.querySelector('#played').getBoundingClientRect();
+              return { rc: [r.top, r.bottom, r.left, r.right].map(Math.round), rt: [t.top, t.bottom, t.left, t.right].map(Math.round), shown: !c.hidden && r.height > 40, text: c.textContent.trim(), font: ct ? parseFloat(getComputedStyle(ct).fontSize) : 0,
+                inside: r.top >= t.top && r.bottom <= t.bottom + 1 && r.left >= t.left && r.right <= t.right, clear: r.top >= p.bottom - 1,
+                shake: [...document.querySelectorAll('#hand .card')].some((e) => e.getAnimations().length > 0) };
+            });
+            await pg.locator('#hand .card').first().tap({ force: true }).catch(() => {});
             const go = pg.locator('#go:not([disabled]):visible');
             if (await go.count()) await go.tap().catch(() => {});
             await pg.waitForTimeout(300); continue;
@@ -182,36 +192,56 @@ async function run() {
         }
         return false;
       };
+      let sawCall = null;
       const myTurn = await settle(true);
       ok(myTurn, `配り方${seed}: 知らせや相手の札を片づけながら、自分の番がくる`);
       if (!myTurn) { await ctx.close(); continue; }
       const names = await pg.locator('#hand .card .cn').evaluateAll((els) => els.map((e) => e.textContent.trim()));
       const pick = names.includes('取り引き') ? names.indexOf('取り引き') : 0;
-      await pg.locator('#hand .card').nth(pick).tap();
+      await pg.locator('#hand .card').nth(pick).tap({ force: true });
       await pg.locator('#go:not([disabled])').tap({ timeout: 3000 });
       await settle(false);
       await pg.waitForTimeout(500);
       // 出したカードの行は画面では顔の列で見せるので、記録そのもの (G.log) を見る
       const mine = (await pg.evaluate(() => G.log.map((l) => l.replace(/[\u0001\u0003]|\u0002/g, '').replace(/^0(?=「)/, 'あなた')))).filter((l) => /^あなた「/.test(l));
+      if (sawCall) {
+        ok(sawCall.shown && sawCall.font >= 20 && /わたす/.test(sawCall.text) && sawCall.inside && sawCall.clear && sawCall.shake,
+          `配り方${seed}: わたすカードをえらぶ番は、場に大きな札 (${sawCall.font}px「${sawCall.text.slice(0, 26)}」) が出て、手札がゆれる`);
+        callSeen++;
+      }
       ok(mine.some((l) => l.includes(names[pick])),
         `配り方${seed}: 自分のカードを出せる (${names[pick]} / 記録: ${mine.join(' / ').slice(0, 50)})`);
       await ctx.close();
     }
-    section('タイトルの色味 (B 夜の青)');
+    ok(callSeen >= 1, `わたすカードをえらぶ番を、${callSeen} 通りの配り方で試した (配り方16 は情報操作がはさまる)`);
+    section('タイトルの絵 (使う人がくれた絵)');
     {
       const pg = await browser.newPage({ viewport: { width: 430, height: 932 } });
       await pg.goto(URL, { waitUntil: 'load' });
-      const tone = await pg.evaluate(() => ({
-        filter: getComputedStyle(document.querySelector('#title .tbg img')).filter,
-        layer: getComputedStyle(document.querySelector('#title .tbg'), '::after').pointerEvents
-      }));
-      // 色味は夜の青に寄せつつ、くすませすぎない (前の saturate .78 は月がにごった。使う人に「弱めて」と言われた)
-      const sat = +((tone.filter.match(/saturate\(([\d.]+)\)/) || [])[1] || 1);
-      ok(/hue-rotate/.test(tone.filter) && sat >= 0.88, `タイトルの色味が夜の青で、くすませすぎない (${tone.filter})`);
-      // 紙のざらつきの層は絵の上に重なる。タップは下のボタンへ通す (落とし穴の表「上に重ねた層が全面をふさぐ」)
-      await pg.locator('#hsStart').click();
-      ok(tone.layer === 'none' && await pg.evaluate(() => !document.querySelector('#setup').hidden),
-        '重ねた層があっても「はじめる」が押せる');
+      const t = await pg.evaluate(() => {
+        const img = document.querySelector('#title .tbg img'), b = img.getBoundingClientRect();
+        return { filter: getComputedStyle(img).filter, w: img.naturalWidth, h: img.naturalHeight, top: Math.round(b.top), bottom: Math.round(b.bottom), left: Math.round(b.left), right: Math.round(b.right),
+          after: getComputedStyle(document.querySelector('#title .tbg'), '::after').content };
+      });
+      // くれた絵をそのまま出す (色を変える加工やざらつきは重ねない)。画面いっぱいに収まる
+      ok(t.w === 851 && t.h === 1847 && t.filter === 'none' && (t.after === 'none' || t.after === 'normal'),
+        `タイトルは くれた絵 (${t.w}x${t.h}) を加工せずに出す (filter ${t.filter})`);
+      ok(t.top >= -1 && t.bottom <= 933 && t.left >= -1 && t.right <= 431 && t.bottom - t.top > 925, `絵が画面いっぱいに収まる (${t.left},${t.top}〜${t.right},${t.bottom})`);
+      // 絵に描き込まれていた時計・電池・下のバーを消した (本物と二重に見える)。上の帯の所は空の色だけ
+      const px = await pg.evaluate(async () => {
+        const img = document.querySelector('#title .tbg img'), c = document.createElement('canvas'); c.width = 851; c.height = 1847;
+        const g = c.getContext('2d'); g.drawImage(img, 0, 0);
+        const bright = (x0, y0, x1, y1) => { const d = g.getImageData(x0, y0, x1 - x0, y1 - y0).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i] > 200 && d[i + 1] > 200 && d[i + 2] > 200) n++; return n; };
+        return { clock: bright(88, 38, 232, 84), battery: bright(712, 42, 782, 78), bar: bright(274, 1818, 576, 1832) };
+      });
+      ok(px.clock < 5 && px.battery < 5 && px.bar < 5, `絵に描き込まれた時計・電池・下のバーを消した (白い画素 ${px.clock} / ${px.battery} / ${px.bar})`);
+      // 透明な当たりが、絵のボタンの上にある。タップは動きの層を通って届く
+      for (const [id, want] of [['#hsStart', '#setup'], ['#howBtn', '#modal'], ['#setBtn', '#modal'], ['#rankBtn', '#modal']]) {
+        await pg.locator(id).click();
+        const opened = await pg.evaluate((q) => !document.querySelector(q).hidden, want);
+        ok(opened, `${id} を押すと開く`);
+        await pg.evaluate(() => { document.querySelector('#setup').hidden = true; document.querySelector('#modal').hidden = true; });
+      }
       await pg.close();
     }
 
@@ -224,11 +254,8 @@ async function run() {
       const t = await pg.evaluate(() => ({
         anim: (document.querySelector('#title .tfx')?.getAnimations({ subtree: true }).length || 0) + document.querySelector('#hsStart').getAnimations({ subtree: true }).length,
         through: document.querySelector('#title .tfx') ? getComputedStyle(document.querySelector('#title .tfx')).pointerEvents : 'なし',
-        rank: getComputedStyle(document.querySelector('#rankBtn')).backgroundImage,
-        rankWrap: (() => { const b = document.querySelector('#rankBtn'); return b.scrollHeight > b.clientHeight + 1 || b.getBoundingClientRect().height > 60; })()
       }));
       ok(t.anim >= 8 && t.through === 'none', `タイトルが動いている (動き ${t.anim} 個)。動きの層はタップを通す`);
-      ok(/gradient/.test(t.rank) && !t.rankWrap, 'ランキングが、ほかの 2 つと同じ形のボタンで、字が 1 行に収まる');
       // あそびかた: ページを送って読む。字は大きく
       await pg.locator('#howBtn').tap();
       const p1 = await pg.evaluate(() => ({ t: document.querySelector('#rpage .pt')?.textContent || 'なし', f: parseFloat(getComputedStyle(document.querySelector('#modal .rules p')).fontSize) }));
@@ -277,7 +304,7 @@ async function run() {
       ok(tile.n >= 4 && tile.hfit, `はじめの手札 ${tile.n} まいが 横にはみ出さない (カードを大きくしたら 4 まいで左端が切れた)`);
       let fit = true, sizes = [];
       for (let k = 0; k < 400; k++) {
-        const st = await pg.evaluate(() => ({ m: !document.querySelector('#modal').hidden, over: typeof G !== 'undefined' && G && G.over, pr: document.querySelector('#prompt').innerText,
+        const st = await pg.evaluate(() => ({ m: !document.querySelector('#modal').hidden, over: typeof G !== 'undefined' && G && G.over, pr: document.querySelector('#prompt').textContent,
           picks: document.querySelectorAll('#players .pl.pick').length, go: !document.querySelector('#go').disabled }));
         if (st.m) { if (st.over) break; await pg.locator('#modal button:visible').first().tap().catch(() => {}); continue; }
         if (st.picks) { await pg.locator('#players .pl.pick').first().tap().catch(() => {}); continue; }
@@ -286,7 +313,7 @@ async function run() {
           const h = await pg.evaluate(() => [...document.querySelectorAll('#hand .card')].map((c) => c.getBoundingClientRect()));
           sizes.push(h.length);
           if (h.some((r) => r.left < 0 || r.right > 430)) fit = false;
-          await pg.locator('#hand .card').first().tap().catch(() => {});
+          await pg.locator('#hand .card').first().tap({ force: true }).catch(() => {});
           await pg.locator('#go:not([disabled])').tap().catch(() => {});
           continue;
         }
@@ -441,7 +468,7 @@ async function run() {
       ok(who.noFace === 0 && who.hasName, '説明の行の名前には顔が付いている');
       // 手札をえらぶと画面が描き直される。場のカードは作り直さない (作り直すと「ぽん」が毎回出る)
       await pg.evaluate(() => { window.__pc = document.querySelector('#played .card'); });
-      await pg.locator('#hand .card').first().tap();
+      await pg.locator('#hand .card').first().tap({ force: true });
       await pg.waitForTimeout(200);
       const same = await pg.evaluate(() => window.__pc === document.querySelector('#played .card') && document.querySelector('#hand .card.sel') !== null);
       ok(same, '手札をえらんで描き直しても、場のカードは作り直されない');
