@@ -272,7 +272,8 @@ const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 // 小さな顔 + キャラの色の名前 (字を読まなくても、だれのことか分かるように)
 // 場のカードの下: 出した人 (と、相手) の顔 + 名札
 function byHTML(P){return `<span class="who1" style="--pc:${AVC[P.av]||'#6f6f78'}">${avatarSVG(P.av)}<b>${esc(P.name)}</b></span>`;}
-function whoHTML(P){return P?`<span class="chip" style="--pc:${AVC[P.av]||'#6f6f78'}">${avatarSVG(P.av)}<b>${esc(P.name)}</b></span>`:'';}
+// 説明の行の名前は顔だけ (すぐ上の行に 顔 + 名札 が出ているので、名前の字までくり返すとうるさい。使う人に言われた)
+function whoHTML(P){return P?`<span class="chip" role="img" aria-label="${esc(P.name)}" style="--pc:${AVC[P.av]||'#6f6f78'}">${avatarSVG(P.av)}</span>`:'';}
 const DEF_NAMES=['あなた','くろねこ','きつね','ふくろう'];
 let settings={n:4,seats:[{name:'あなた',cpu:false},{name:'くろねこ',cpu:true},{name:'きつね',cpu:true},{name:'ふくろう',cpu:true}],sound:true};
 try{const s=JSON.parse(localStorage.getItem('yakata-settings'));if(s&&s.seats&&s.seats.length===4)settings=s;}catch(e){}

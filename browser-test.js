@@ -458,14 +458,15 @@ async function run() {
         const lines = [...document.querySelectorAll('#log div')];
         const r = { faces: by.querySelectorAll('img.av').length, plate: getComputedStyle(by.querySelector('b')).backgroundColor,
           by: by.textContent, lines: lines.length, text: lines.map((d) => d.textContent).join(' / '),
-          noFace: lines.filter((d) => /くろねこ|きつね|ふくろう|あなた/.test(d.textContent) && !d.querySelector('img.av')).length,
-          hasName: lines.some((d) => d.querySelector('img.av')) };
+          names: lines.filter((d) => /くろねこ|きつね|ふくろう|あなた/.test(d.textContent)).length,
+          hasName: lines.some((d) => d.querySelector('.chip[aria-label] img.av')) };
         G.log = keep; UI.render();
         return r;
       });
       ok(who.faces >= 1 && who.plate !== 'rgba(0, 0, 0, 0)', `場のカードの下に、出した人の顔とキャラの色の名札がある (${who.by} / 顔 ${who.faces})`);
       ok(who.lines === 2 && !/「.+」/.test(who.text), `説明の行は 2 行まで、出したカードの行はくり返さない (${who.text})`);
-      ok(who.noFace === 0 && who.hasName, '説明の行の名前には顔が付いている');
+      // 上の行に 顔 + 名札 があるので、説明の行は顔だけ (名前の字までくり返すとうるさい、と言われた)
+      ok(who.names === 0 && who.hasName, `説明の行の名前は顔だけで、名前の字は出さない (${who.text})`);
       // 手札をえらぶと画面が描き直される。場のカードは作り直さない (作り直すと「ぽん」が毎回出る)
       await pg.evaluate(() => { window.__pc = document.querySelector('#played .card'); });
       await pg.locator('#hand .card').first().tap({ force: true });
