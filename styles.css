@@ -1,11 +1,11 @@
 :root{
-  --night:#151a2e;--night2:#1f2742;--gold:#d8b45a;--gold2:#f1d78c;--paper:#f6ecd6;--paper2:#eadcbc;
+  --night:#0f2a57;--night2:#173a74;--gold:#f2b632;--gold2:#ffd65c;--paper:#f6ecd6;--paper2:#eadcbc;
   --ink:#2b2233;--muted:#8a90a8;--cw:min(21vw,96px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
 html,body{margin:0;height:100vh;position:relative;background:var(--night);color:#eef0f7;
   font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",system-ui,sans-serif;overflow:hidden;touch-action:manipulation}
-body{background:radial-gradient(120% 70% at 50% 0%,#2a3358 0%,var(--night) 60%) fixed}
+body{background:radial-gradient(120% 70% at 50% 0%,#24508f 0%,var(--night) 62%) fixed}
 button{font:inherit;cursor:pointer;border:none}
 img.av{border-radius:50%;object-fit:cover;-webkit-user-drag:none;pointer-events:none}
 .screen{position:absolute;inset:0;display:flex;flex-direction:column;
@@ -61,7 +61,7 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 .seat .seg{flex:none;width:120px}
 .seat .seg button{font-size:13px;padding:7px 0}
 .big{display:block;width:min(94vw,420px);margin:14px auto 0;padding:15px;border-radius:16px;font-size:20px;font-weight:800;letter-spacing:.1em;
-  background:linear-gradient(#f1d78c,#c99d3c);color:#2b1d08;box-shadow:0 4px 0 #7a5a1c,0 8px 20px #0007}
+  background:linear-gradient(#ffdf6a,#f5b52a);color:#3b2410;box-shadow:inset 0 2px 0 #fff6,0 0 0 3px #3b2410,0 5px 0 #3b2410,0 8px 20px #0007}
 .big:active{transform:translateY(3px);box-shadow:0 1px 0 #7a5a1c}
 .links{display:flex;gap:10px;justify-content:center;margin-top:12px}
 .ghost{background:#ffffff12;color:#dfe3f2;border:1px solid #ffffff22;border-radius:12px;padding:9px 16px;font-size:14px}
@@ -70,16 +70,17 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 /* ---------- game ---------- */
 #game{gap:8px}
 #bar{display:flex;align-items:center;justify-content:space-between;height:36px}
-#bar .t{font-size:18px;font-weight:900;color:var(--gold2);letter-spacing:.12em;text-align:center;line-height:1.1;text-shadow:0 2px 0 #0008}
-#bar .t small{display:block;font-size:10px;font-weight:700;letter-spacing:.2em;color:#c9cbe0;margin-top:2px}
-#bar button{height:34px;background:#ffffff1f;color:#fff;border:1px solid #ffffff2e;border-radius:999px;padding:0 16px;font-size:14px;font-weight:800}
-#bar button:active{background:#ffffff38}
+#bar .t{font-size:19px;font-weight:900;color:#ffcf3f;-webkit-text-stroke:4px #3b2410;paint-order:stroke fill;letter-spacing:.12em;text-align:center;line-height:1.1;text-shadow:0 2px 0 #0008}
+#bar .t small{display:block;font-size:10px;font-weight:700;letter-spacing:.2em;color:#d6e2ff;-webkit-text-stroke:0;margin-top:2px}
+#bar button{height:34px;background:linear-gradient(#7462e6,#4f3fbf 60%,#4334a8);color:#fff;border:none;border-radius:999px;padding:0 16px;font-size:14px;font-weight:800;
+  box-shadow:inset 0 2px 0 #ffffff40,0 0 0 2.5px #1b1a4a,0 3px 6px #0007;text-shadow:0 1.5px 0 #1b1a4a}
+#bar button:active{transform:translateY(2px)}
 #players{display:grid;gap:6px;padding-top:14px;margin-bottom:8px}
-.pl{position:relative;background:#ffffff0c;border:1.5px solid #ffffff14;border-radius:14px;padding:6px 4px 5px;text-align:center;transition:.2s}
+.pl{position:relative;background:#0b23498c;border:1.5px solid #8fb4ff2a;border-radius:14px;padding:6px 4px 5px;text-align:center;transition:.2s}
 /* B「名札」: 顔を大きくしてキャラの色の輪で囲み、下にキャラの色の名札 (白い字)。地は暗いまま (カードと見分ける) */
 .pl .av{width:60px;height:60px;display:block;margin:-18px auto 0;border-radius:50%;position:relative;
   /* C「飛び出す顔」: タイルの上のふちから顔を出す。地の色で一回り縁取ってから、キャラの色の輪 */
-  box-shadow:0 0 0 2.5px #151a2e,0 0 0 5.5px var(--pc,#6f6f78),0 6px 12px #000a}
+  box-shadow:0 0 0 2.5px var(--night),0 0 0 5.5px var(--pc,#6f6f78),0 6px 12px #000a}
 .pl .nm{display:inline-block;max-width:94%;margin-top:7px;background:var(--pc,#6f6f78);color:#fff;border-radius:999px;padding:1px 10px;
   font-size:12px;font-weight:800;text-shadow:0 1px 0 #0005;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* 手札の枚数は、小さなカードの裏を扇に重ねて見せる (細い枠の四角は、字が出ない「豆腐」に見えた) */
@@ -89,7 +90,7 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
   border:1.5px solid var(--gold2);box-shadow:1px 1px 2px #000a}
 .pl .cnt i:nth-child(odd){transform:rotate(-6deg)}
 .pl .cnt i:nth-child(even){transform:rotate(5deg) translateY(-1px)}
-.pl.turn{border-color:var(--gold);background:#d8b45a22;box-shadow:0 0 14px #d8b45a55}
+.pl.turn{border-color:var(--gold);background:#f2b63226;box-shadow:0 0 14px #f2b63266}
 .pl.me .nm{color:#fff;box-shadow:0 0 0 1.5px var(--gold2)}
 .pl .tag{position:absolute;bottom:-9px;right:-4px;z-index:1;white-space:nowrap;background:#6b3fa0;color:#fff;font-size:10px;font-weight:800;border-radius:8px;padding:1px 6px;border:1px solid #c9a8ff}
 .pl .you{position:absolute;bottom:-9px;left:-4px;z-index:1;white-space:nowrap;background:var(--gold);color:var(--ink);font-size:10px;font-weight:800;border-radius:8px;padding:1px 6px}
@@ -107,16 +108,22 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
     radial-gradient(1.2px 1.2px at 90% 64%,#fff7 50%,transparent 51%),
     radial-gradient(1.8px 1.8px at 70% 30%,#ffe9a8aa 50%,transparent 51%),
     radial-gradient(1.2px 1.2px at 8% 52%,#fff6 50%,transparent 51%),
-    radial-gradient(60px 60px at 86% 10%,#fff3c8 0%,#ffe08a 38%,#ffd36a33 60%,transparent 72%),
-    radial-gradient(150px 150px at 86% 10%,#8fa0ff33,transparent 70%),
-    radial-gradient(58% 42% at 50% 46%,#5a5cc4cc 0%,#33388aaa 45%,transparent 75%),
-    linear-gradient(180deg,#1f2660 0%,#192050 55%,#13183c 100%);
-  box-shadow:inset 0 0 0 1.5px #8fa0ff40,inset 0 -40px 60px #0006}
+    radial-gradient(7px 6px at 82.5% 11%,#e9c27c 0 90%,transparent 100%),
+    radial-gradient(9px 8px at 87.5% 15.5%,#ebc681 0 90%,transparent 100%),
+    radial-gradient(5px 5px at 84% 17%,#e9c27c 0 90%,transparent 100%),
+    radial-gradient(34px 34px at 85% 13%,#f8dfa0 0 96%,transparent 100%),
+    radial-gradient(80px 80px at 85% 13%,#ffe9a866 0%,#ffe9a822 45%,transparent 70%),
+    radial-gradient(42% 16% at 6% 104%,#2f5aa8cc 0 60%,transparent 62%),
+    radial-gradient(34% 14% at 30% 108%,#2a519bcc 0 60%,transparent 62%),
+    radial-gradient(40% 15% at 96% 102%,#2f5aa8cc 0 60%,transparent 62%),
+    radial-gradient(60% 44% at 50% 46%,#3d6cc8aa 0%,#2a52a066 45%,transparent 75%),
+    linear-gradient(180deg,#1a3d7c 0%,#143364 55%,#0f2850 100%);
+  box-shadow:inset 0 0 0 2px #8fb4ff40,inset 0 -40px 60px #0005}
 #table::before{content:"♪";position:absolute;left:7%;top:6%;font-size:26px;color:#ff7ac8;opacity:.75;transform:rotate(-12deg);pointer-events:none}
 #table::after{content:"♫";position:absolute;right:10%;bottom:7%;font-size:22px;color:#ffd36a;opacity:.6;transform:rotate(10deg);pointer-events:none}
 /* 場のカードと説明は縮ませない (縮むと字の上にカードの名札が重なった)。場が低いときはカードの方を小さくする */
 #played{flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;min-height:40px;position:relative;z-index:1}
-#played .card.played{--w:clamp(96px,calc((100cqh - 168px)/1.45),138px);box-shadow:0 0 0 2px #ffe08a,0 0 22px 4px #ffd36a88,0 0 50px 10px #7d8cff66,0 10px 18px #0008}
+#played .card.played{--w:clamp(96px,calc((100cqh - 168px)/1.45),138px);box-shadow:0 0 0 2px #ffe08a,0 0 22px 4px #ffd36a88,0 0 50px 10px #6f9cff55,0 10px 18px #0008}
 #played .by{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:800;color:#e8e2ff;text-shadow:0 2px 0 #0008}
 #played .by .who1{display:inline-flex;align-items:center;gap:4px}
 #played .by .to{color:#ffd36a;font-size:16px}
@@ -148,7 +155,7 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 #info .who1{display:inline-flex;align-items:center;gap:4px}
 #info .who1 .av{width:30px;height:30px;flex:none;box-shadow:0 0 0 2px var(--pc)}
 #info .who1 b{background:var(--pc);color:#fff;font-size:13px;padding:1px 9px;border-radius:999px}
-#go{flex:none;min-width:108px;height:48px;padding:0 18px;border-radius:14px;font-weight:900;font-size:18px;background:linear-gradient(#f1d78c,#c99d3c);color:#2b1d08;box-shadow:0 3px 0 #7a5a1c}
+#go{flex:none;min-width:108px;height:48px;padding:0 18px;border-radius:14px;font-weight:900;font-size:18px;background:linear-gradient(#ffdf6a,#f5b52a);color:#3b2410;box-shadow:inset 0 2px 0 #fff6,0 0 0 2.5px #3b2410,0 4px 0 #3b2410}
 /* 押せないボタンは灰色で残さず、出さない (壊れて見えるため)。カードをえらぶと金色で出る */
 #go:disabled{display:none}
 /* 手札はいちばん触る物なので大きく (取り込み時 90pt → 112pt) */
@@ -182,24 +189,25 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 .mini{--w:58px}
 
 /* ---------- overlays ---------- */
-.ov{position:absolute;inset:0;background:#070a14cc;display:flex;align-items:center;justify-content:center;z-index:20;padding:20px;backdrop-filter:blur(3px)}
-.box{width:min(92vw,400px);max-height:86vh;overflow-y:auto;background:linear-gradient(#262f52,#1b2240);border:1.5px solid var(--gold);border-radius:20px;padding:18px 16px;text-align:center;
+.ov{position:absolute;inset:0;background:#06132bcc;display:flex;align-items:center;justify-content:center;z-index:20;padding:20px;backdrop-filter:blur(3px)}
+.box{width:min(92vw,400px);max-height:86vh;overflow-y:auto;background:linear-gradient(#1f4384,#132f61);border:1.5px solid var(--gold);border-radius:20px;padding:18px 16px;text-align:center;
   animation:pop .25s ease-out;box-shadow:0 20px 50px #000a}
 @keyframes pop{from{transform:scale(.85);opacity:0}}
 .box h2{margin:0 0 10px;font-size:20px;color:var(--gold2)}
 .box p{margin:8px 0;line-height:1.7;font-size:15px}
 .box .cards{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin:10px 0}
 .box .btns{display:flex;gap:10px;justify-content:center;margin-top:14px}
-.box .btns button{flex:1;max-width:200px;padding:12px;border-radius:12px;font-weight:800;font-size:16px;background:linear-gradient(#f1d78c,#c99d3c);color:#2b1d08}
-.box .btns button.sec{background:#ffffff1c;color:#fff}
+.box .btns button{flex:1;max-width:200px;padding:12px;border-radius:999px;font-weight:900;font-size:16px;background:linear-gradient(#ffdf6a,#f5b52a);color:#3b2410;box-shadow:inset 0 2px 0 #fff6,0 0 0 2.5px #3b2410,0 4px 0 #3b2410;margin-bottom:4px}
+.box .btns button:active{transform:translateY(2px)}
+.box .btns button.sec{background:linear-gradient(#7462e6,#4f3fbf 60%,#4334a8);color:#fff;text-shadow:0 1.5px 0 #1b1a4a;box-shadow:inset 0 2px 0 #ffffff40,0 0 0 2.5px #1b1a4a,0 4px 0 #1b1a4a}
 .box .big-av{width:84px;height:84px;margin:0 auto}
 .big-av .av{width:100%;height:100%;display:block}
 .speech{background:var(--paper);color:var(--ink);border-radius:14px;padding:10px 12px;margin:8px 0;font-weight:700;position:relative}
-#handoff{background:#0b0f1e;flex-direction:column;gap:14px;text-align:center}
+#handoff{background:radial-gradient(120% 70% at 50% 0%,#24508f,#0f2a57 62%);flex-direction:column;gap:14px;text-align:center}
 #handoff .big-av{width:110px;height:110px}
 #handoff h2{color:var(--gold2);margin:0;font-size:24px}
 #handoff p{color:var(--muted);margin:0}
-#handoff button{padding:16px 40px;border-radius:16px;font-size:20px;font-weight:800;background:linear-gradient(#f1d78c,#c99d3c);color:#2b1d08}
+#handoff button{padding:16px 40px;border-radius:999px;font-size:20px;font-weight:900;background:linear-gradient(#ffdf6a,#f5b52a);color:#3b2410;box-shadow:inset 0 2px 0 #fff6,0 0 0 3px #3b2410,0 5px 0 #3b2410}
 .res{display:flex;align-items:center;gap:10px;padding:8px;border-radius:12px;background:#ffffff0a;margin:6px 0;text-align:left}
 .res.win{background:#d8b45a26;border:1px solid var(--gold)}
 .res .av{width:40px;height:40px;flex:none}
@@ -219,9 +227,9 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 /* ---------- 場の上に重ねる知らせ (OK を押させない) ---------- */
 .banner{position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding:16px;background:#0a0e2266;pointer-events:none}
 .banner .bx{display:flex;flex-direction:column;align-items:center;gap:6px;max-width:92%;padding:16px 18px 14px;border-radius:22px;text-align:center;
-  background:linear-gradient(#2c3566f2,#1b2250f2);box-shadow:0 0 0 2px var(--pc),0 0 0 5px #0006,0 14px 30px #000a}
+  background:linear-gradient(#22488ef2,#15336af2);box-shadow:0 0 0 2px var(--pc),0 0 0 5px #0006,0 14px 30px #000a}
 .banner .bav{width:78px;height:78px;margin-top:-50px}
-.banner .bav .av{width:100%;height:100%;display:block;box-shadow:0 0 0 3px #151a2e,0 0 0 6px var(--pc),0 6px 14px #000a}
+.banner .bav .av{width:100%;height:100%;display:block;box-shadow:0 0 0 3px var(--night),0 0 0 6px var(--pc),0 6px 14px #000a}
 .banner .bt p{margin:4px 0;font-size:16px;line-height:1.5;font-weight:700;color:#e8e2ff}
 .banner .bt p.lead{font-size:21px;font-weight:900;color:#fff}
 .banner .bt b{color:var(--gold2)}
@@ -240,7 +248,7 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 #seats{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .seat2{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 8px 10px;border-radius:18px;background:#ffffff0d;
   box-shadow:inset 0 0 0 1.5px color-mix(in srgb,var(--pc) 70%,transparent)}
-.seat2 .av{width:62px;height:62px;box-shadow:0 0 0 3px #151a2e,0 0 0 6px var(--pc)}
+.seat2 .av{width:62px;height:62px;box-shadow:0 0 0 3px var(--night),0 0 0 6px var(--pc)}
 .seat2 input{width:100%;text-align:center;background:#0005;border:1px solid #ffffff26;border-radius:10px;color:#fff;font:inherit;font-size:16px;font-weight:800;padding:7px 6px;-webkit-user-select:text;user-select:text}
 .seat2 .seg{width:100%}
 .seat2 .seg button{font-size:15px;padding:8px 0}
@@ -282,9 +290,9 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
    場の下に大きな札を出し、手札をゆらして「ここを押す」と分かるようにする */
 #callout{flex:none;position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:2px;max-width:92%;
   padding:10px 18px 8px;border-radius:18px;text-align:center;pointer-events:none;
-  background:linear-gradient(#2b2470,#1d1850);box-shadow:0 0 0 3px #ffd36a,0 0 24px 6px #ffd36a66,0 8px 16px #0009;
+  background:linear-gradient(#22488e,#15336a);box-shadow:0 0 0 3px #ffd36a,0 0 24px 6px #ffd36a66,0 8px 16px #0009;
   animation:callIn .35s cubic-bezier(.2,1.5,.4,1),callGlow 1.6s ease-in-out .35s infinite}
-#callout .tag{font-size:14px;font-weight:900;color:#1b1246;background:#ffd36a;border-radius:999px;padding:2px 12px;margin-top:-22px;box-shadow:0 2px 0 #0006}
+#callout .tag{font-size:14px;font-weight:900;color:#3b2410;background:#ffd36a;border-radius:999px;padding:2px 12px;margin-top:-22px;box-shadow:0 2px 0 #0006}
 #callout .ct{font-size:21px;font-weight:900;color:#fff;line-height:1.35;text-shadow:0 2px 0 #0008}
 #callout .ct b{color:var(--gold2)}
 #callout .arw{font-size:18px;color:#ffd36a;line-height:1;animation:callArw .8s ease-in-out infinite}
