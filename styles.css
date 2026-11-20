@@ -130,9 +130,8 @@ h1{font-size:30px;letter-spacing:.12em;margin:4px 0 2px;color:var(--gold2);text-
 #played .by .av{width:46px;height:46px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px var(--pc),0 4px 10px #0008;flex:none}
 #played .by b{background:var(--pc);color:#fff;font-size:18px;padding:3px 12px;border-radius:999px;box-shadow:0 2px 0 #0006;text-shadow:0 1px 0 #0006}
 /* 説明の行の中の 小さな顔 + キャラの色の名前 */
-#log .chip{display:inline-flex;align-items:center;gap:3px;vertical-align:middle;white-space:nowrap}
-#log .chip .av{width:1.5em;height:1.5em;border-radius:50%;background:#fff;box-shadow:0 0 0 2px var(--pc)}
-#log .chip b{color:color-mix(in srgb,var(--pc) 45%,#fff)}
+#log .chip{display:inline-flex;align-items:center;vertical-align:middle;margin:0 2px}
+#log .chip .av{width:1.7em;height:1.7em;border-radius:50%;background:#fff;box-shadow:0 0 0 2.5px var(--pc),0 2px 4px #0008}
 #log{flex:none;width:100%;max-width:410px;font-size:14px;line-height:1.55;text-align:center;color:#e8e2ff;min-height:72px;padding:0 12px;position:relative;z-index:1}
 #log div{opacity:.55;font-size:14px}
 #log div:nth-last-child(2){opacity:.8;font-size:16px}

@@ -151,13 +151,13 @@ async function runGame(){
   }
 }
 async function takeTurn(i){
-  const P=G.players[i];G.turn=i;UI.render();
+  const P=G.players[i];G.turn=i;G.turnNo=(G.turnNo||0)+1;UI.render();
   let ch;
-  if(P.cpu){await UI.wait(pace().think);ch=cpuChoose(i);}
+  if(P.cpu){UI.sfx('turn');await UI.wait(thinkMs(P));ch=cpuChoose(i);}
   else{await UI.ensureViewer(i);ch=await UI.humanTurn(i);}
   await resolvePlay(i,ch.ci,ch.target);
   // 出したカードと、その結果 (記録の行) を読む間。タップすれば待たずに次へ
-  if(P.cpu&&!G.over)await UI.readPause(pace().read);
+  if(P.cpu&&!G.over&&G.last)await UI.readPause(Math.max(450,pace().read*(READ_W[G.last.type]??.6)));
   P.hand.forEach(c=>c.fresh=false);
   UI.afterTurn(i);
 }
@@ -168,7 +168,7 @@ async function resolvePlay(i,ci,target){
   const P=G.players[i],c=P.hand.splice(ci,1)[0],T=target!=null?G.players[target]:null;
   G.last=c;G.lastBy=i;G.lastTo=T?target:null;UI.sfx('play');
   log(`\u0003${W(P)}「${nm(c.type)}」`+(T?` → ${W(T)}`:''));
-  await UI.wait(450);
+  await UI.wait(P.cpu?450:200);
   switch(c.type){
     case 'hannin':
       return endGame('hannin',i,i);
@@ -176,6 +176,7 @@ async function resolvePlay(i,ci,target){
       if(!T){log('きく相手が いない…');break;}
       const isC=has(T,'hannin'),yes=isC&&!has(T,'alibi');
       await UI.announce(i,`<div class="speech">「${T.name}さん、あなたが 犯人ですね?」</div>`,null,null,Math.max(1500,pace().read*.7));
+      UI.sfx('drum');await UI.wait(Math.round(pace().think*1.6));
       if(yes){UI.sfx('hit');setMood(target,'shock');await UI.announce(target,`<div class="speech">「……はい。わたしが 犯人です。」</div>`,null,'shock');return endGame('tantei',i,target);}
       UI.sfx('miss');
       await UI.announce(target,`<div class="speech">「いいえ、ちがいます。」</div>`,null,'happy',Math.max(1500,pace().read*.7));setMood(i,'sad',2500);
@@ -272,7 +273,8 @@ const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 // 小さな顔 + キャラの色の名前 (字を読まなくても、だれのことか分かるように)
 // 場のカードの下: 出した人 (と、相手) の顔 + 名札
 function byHTML(P){return `<span class="who1" style="--pc:${AVC[P.av]||'#6f6f78'}">${avatarSVG(P.av)}<b>${esc(P.name)}</b></span>`;}
-function whoHTML(P){return P?`<span class="chip" style="--pc:${AVC[P.av]||'#6f6f78'}">${avatarSVG(P.av)}<b>${esc(P.name)}</b></span>`:'';}
+// 説明の行の名前は顔だけ (すぐ上の行に 顔 + 名札 が出ているので、名前の字までくり返すとうるさい。使う人に言われた)
+function whoHTML(P){return P?`<span class="chip" role="img" aria-label="${esc(P.name)}" style="--pc:${AVC[P.av]||'#6f6f78'}">${avatarSVG(P.av)}</span>`:'';}
 const DEF_NAMES=['あなた','くろねこ','きつね','ふくろう'];
 let settings={n:4,seats:[{name:'あなた',cpu:false},{name:'くろねこ',cpu:true},{name:'きつね',cpu:true},{name:'ふくろう',cpu:true}],sound:true};
 try{const s=JSON.parse(localStorage.getItem('yakata-settings'));if(s&&s.seats&&s.seats.length===4)settings=s;}catch(e){}
@@ -281,6 +283,17 @@ const save=()=>{try{localStorage.setItem('yakata-settings',JSON.stringify(settin
 const PACES={slow:{label:'ゆっくり',think:650,read:4000},normal:{label:'ふつう',think:450,read:2800},fast:{label:'はやい',think:250,read:1400}};
 if(!PACES[settings.speed])settings.speed='normal';
 const pace=()=>PACES[settings.speed]||PACES.normal;
+/* テンポの緩急。前は どのカードでも 1 手 4.17 秒 (考える 0.45 + 飛ぶ 0.46 + 間 0.45 + 読む 2.8) で、リズムが一定だった。
+   何も起きないカードは さっと流し、起きたことが多いカードほど読む間をとる。知らせ (announce) を出したカードは、そこで読んでいるので短く */
+const READ_W={alibi:.4,ippan:.4,hakken:.4,takurami:.6,mokugeki:.5,shonen:.5,uwasa:.8,sousa:.8,torihiki:.8,tantei:.25,inu:.25};
+// 考える間も毎回同じにしない。乱数は使わない (配り方を決め打ちにしたテストの道すじを変えないため)。手の番号から決める
+const THINK_W=[1,.7,1.35,.85,1.15,.6,1.5,.9];
+function thinkMs(P){
+  const base=pace().think*THINK_W[(G.turnNo||0)%THINK_W.length];
+  if(P.hand.length<=1)return base*.5;                       // 出せるのが 1 まいなら迷わない
+  if(P.hand.some(c=>c.type==='tantei'||c.type==='inu'))return base+pace().think*.8;   // 決め手を持っていると、少し考えこむ
+  return base;
+}
 
 /* ---- sound ---- */
 let AC=null;
@@ -306,7 +319,10 @@ const SFX={
   dog:()=>{tone(600,.08,'square',.06,0,400);tone(650,.08,'square',.06,.14,420);},
   win:()=>{[523,659,784,1047,1319].forEach((f,i)=>tone(f,.4,'triangle',.13,i*.1));},
   lose:()=>{[392,330,262,196].forEach((f,i)=>tone(f,.4,'sine',.12,i*.16));},
-  secret:()=>{tone(1200,.5,'sine',.08);tone(1600,.6,'sine',.06,.12);}
+  secret:()=>{tone(1200,.5,'sine',.08);tone(1600,.6,'sine',.06,.12);},
+  turn:()=>tone(520,.07,'sine',.05),
+  myturn:()=>{tone(784,.12,'triangle',.1);tone(1047,.18,'triangle',.1,.09);},
+  drum:()=>{for(let k=0;k<6;k++)tone(110+k*6,.08,'triangle',.07+k*.012,k*.11);}
 };
 
 /* ---- title ---- */
@@ -493,7 +509,8 @@ const UI={
       const P=G.players[i];
       ui.mode='play';ui.sel=-1;ui.legal=legalIdx(P);ui.btn='出す';ui.resolve=res;
       UI.setPrompt('あなたの番! カードを1まい出そう');
-      UI.render();
+      UI.render();SFX.myturn();
+      const pr=$('#prompt');if(pr.animate)pr.animate([{transform:'scale(.8)',opacity:0},{transform:'scale(1.12)',opacity:1,offset:.6},{transform:'scale(1)'}],{duration:380,easing:'ease-out'});
     });
   },
   pickGive(i,title){
