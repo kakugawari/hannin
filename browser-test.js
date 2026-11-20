@@ -476,6 +476,35 @@ async function run() {
       await ctx.close();
     }
 
+    section('テンポの緩急');
+    {
+      // コンピュータ 4 人で 1 ゲーム。待ち時間 (wait / readPause) は待たずに記録だけして、1 手ごとの長さを数える
+      const pg = await browser.newPage({ viewport: { width: 430, height: 932 } });
+      await pg.addInitScript(() => {
+        let a = 7; Math.random = () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+        localStorage.setItem('yakata-settings', JSON.stringify({ n: 4, seats: [{ name: 'こども', cpu: true }, { name: 'くろねこ', cpu: true }, { name: 'きつね', cpu: true }, { name: 'ふくろう', cpu: true }], sound: false, speed: 'normal' }));
+      });
+      await pg.goto(URL, { waitUntil: 'load' });
+      const res = await pg.evaluate(async () => {
+        let acc = 0; const turns = [];
+        UI.wait = (ms) => { acc += ms; return Promise.resolve(); };
+        UI.readPause = (ms) => { acc += ms; return Promise.resolve(); };
+        UI.fly = () => Promise.resolve(); UI.flyPlay = () => Promise.resolve(); UI.moveNotice = () => Promise.resolve();
+        const orig = window.takeTurn;
+        window.takeTurn = async (i) => { acc = 0; await orig(i); turns.push({ type: G.last && G.last.type, ms: acc }); };
+        document.querySelector('#hsStart').click(); document.querySelector('#start').click();
+        for (let k = 0; k < 400 && !(G && G.over); k++) await new Promise((r) => setTimeout(r, 10));
+        const avg = (ts) => { const v = turns.filter((t) => ts.includes(t.type)).map((t) => t.ms); return v.length ? v.reduce((x, y) => x + y, 0) / v.length : NaN; };
+        const think = new Set(turns.map((t) => t.ms)).size;
+        return { n: turns.length, light: avg(['alibi', 'ippan']), mid: avg(['takurami', 'mokugeki', 'shonen']), heavy: avg(['torihiki', 'sousa', 'uwasa']), kinds: think };
+      });
+      // 何も起きないカードは さっと、カードが動くものは じっくり (前はどれも同じ 4.17 秒だった)
+      ok(res.n > 5 && res.light < res.heavy * 0.75 && (isNaN(res.mid) || (res.mid > res.light && res.mid < res.heavy)),
+        `テンポに緩急がある: 何も起きない ${(res.light / 1000).toFixed(2)}秒 < こっそり ${(res.mid / 1000).toFixed(2)}秒 < カードが動く ${(res.heavy / 1000).toFixed(2)}秒 (${res.n} 手)`);
+      ok(res.kinds >= 6, `1 手の長さが毎回同じではない (${res.kinds} 通り)`);
+      await pg.close();
+    }
+
     section('はやさ (CPU が出したカードを読む間)');
     {
       // 配り方13: くろねこが第一発見者 → きつね → ふくろう と CPU が続く。あなたの番はそのあと
@@ -516,17 +545,19 @@ async function run() {
           const k = window.__plays.find((e) => /^きつね/.test(e.by)), f = window.__plays.find((e) => /^ふくろう/.test(e.by));
           return Math.round(f.t - k.t);
         });
+        const kind = await pg.evaluate(() => (G.log.find((l) => /^\u0003\u00012\u0002/.test(l)) || '').replace(/[\u0001-\u0003]\d?/g, ''));
         await ctx.close();
-        return { gap: r, speed };
+        return { gap: r, speed, kind };
       };
       const normal = await pace(null, 0);
-      ok(normal.gap >= 2500, `ふつうの速さで、CPU のカードが読めるだけ場に残る (${normal.gap}ms / 直す前は 1350ms)`);
+      // 何も起きないカードは さっと流す (テンポの緩急)。それでも読む前に次が出た直す前 (1350ms) より、はっきり長く残す
+      ok(normal.gap >= 2200, `ふつうの速さで、CPU のカードが読めるだけ場に残る (${normal.gap}ms・きつねのカード ${normal.kind} / 直す前は 1350ms)`);
       const skipped = await pace(null, 500);
       ok(skipped.gap < 1800, `待っている間に場をタップすると、すぐ次へ進む (${skipped.gap}ms)`);
       // 前の版で遊んだブラウザ: はやさの無い設定が残っている (落とし穴の表「初期値は、保存があっても足す」)
       const old = { n: 4, seats: [{ name: 'あなた', cpu: false }, { name: 'くろねこ', cpu: true }, { name: 'きつね', cpu: true }, { name: 'ふくろう', cpu: true }], sound: false };
       const fromOld = await pace(old, 0);
-      ok(fromOld.gap >= 2500, `前の版の設定が残っていても、ふつうの速さで始まる (${fromOld.gap}ms)`);
+      ok(fromOld.gap >= 2200, `前の版の設定が残っていても、ふつうの速さで始まる (${fromOld.gap}ms)`);
     }
 
     if (!(await phone.locator('#btnAction').count())) {
